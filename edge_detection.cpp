@@ -2,27 +2,19 @@
 #include "kernel.h"
 
 //Prototypes
-__global__ void edge_detection();
-int[] edge_detection(int fd);
-
-using namespace std;
-int main() {
-
-
-
-    return 0;
-}
+//__global__ void edge_detection();
+vector<int> edge_detection(int fd);
 
 vector<int> edge_detection(int fd)
 {
-
+    vector<int> vec;
     //Call kernel ( edge_detection() ) here
 
-
+    return vec;
 }
 
 
-__global__
+//__global__
 void edge_detection()
 {
 
