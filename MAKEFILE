@@ -1,11 +1,13 @@
 CC=g++
-CFLAGS= -g -Wall
-TARGETS = sobel
+CFLAGS= -g -Wall --debug
+
+TARGETS = main
+FILES = main.cpp gcode_gen.cpp edge_detection.cpp kernel.h
 
 all: $(TARGETS)
 
-sobel: sobel.cpp kernels.h
-	$(CC) $(CFLAGS) $@.cpp -o $@
+main: $(FILES)
+	$(CC) $(CFLAGS) gcode_gen.cpp edge_detection.cpp $@.cpp -o $@
 
 clean:
 	rm -f *.o $(TARGETS);

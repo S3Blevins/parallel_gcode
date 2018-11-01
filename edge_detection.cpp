@@ -1,4 +1,4 @@
-#include <stdio..h>
+#include <stdio.h>
 #include "kernel.h"
 
 //Kernel prototype
@@ -12,7 +12,7 @@ int main() {
     return 0;
 }
 
-int[] edge_detection(int fd)
+vector<int> edge_detection(int fd)
 {
 
     //Call kernel ( edge_detection() ) here
