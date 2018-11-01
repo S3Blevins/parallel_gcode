@@ -12,7 +12,7 @@ int main() {
     return 0;
 }
 
-int[] edge_detection()
+int[] edge_detection(int fd)
 {
 
     //Call kernel ( edge_detection() ) here

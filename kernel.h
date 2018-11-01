@@ -3,4 +3,4 @@
 
 
 
-int[] edge_detection();
+int[] edge_detection(int fd);
