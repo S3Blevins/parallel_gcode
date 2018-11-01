@@ -1,0 +1,11 @@
+CC=g++
+CFLAGS= -g -Wall
+TARGETS = sobel
+
+all: $(TARGETS)
+
+sobel: sobel.cpp kernels.h
+	$(CC) $(CFLAGS) $@.cpp -o $@
+
+clean:
+	rm -f *.o $(TARGETS);
