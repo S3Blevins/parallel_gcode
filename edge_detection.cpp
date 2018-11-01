@@ -1,8 +1,9 @@
-#include <stdio..h>
+#include <stdio.h>
 #include "kernel.h"
 
-//Kernel prototype
+//Prototypes
 __global__ void edge_detection();
+int[] edge_detection(int fd);
 
 using namespace std;
 int main() {
