@@ -1,13 +1,12 @@
-CC=g++
-CFLAGS= -g -Wall --debug
+NVCC=nvcc
+LINK=-L /usr/local/cuda/lib
+CUDA=-lcudart
+targets= edge_detector
 
-TARGETS = main
-FILES = main.cpp gcode_gen.cpp edge_detection.cpp kernel.h
+all: $(targets)
 
-all: $(TARGETS)
-
-main: $(FILES)
-	$(CC) $(CFLAGS) gcode_gen.cpp edge_detection.cpp $@.cpp -o $@
+edge_detector: matMul.cu
+	$(NVCC) $@.cu $(LINK) $(CUDA) -lm -o $@
 
 clean:
-	rm -f *.o $(TARGETS);
+	rm -rf *.o $(targets)
