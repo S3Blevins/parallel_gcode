@@ -4,6 +4,6 @@
 
 using namespace std;
 int main(int argc, char const *argv[]) {
-    cout << "VICTOR IS AWSOME" << endl;
+    g_gen(5);
     return 0;
 }
