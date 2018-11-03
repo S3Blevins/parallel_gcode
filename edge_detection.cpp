@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "kernel.h"
 
+using namespace std;
+
 //Prototypes
 //__global__ void edge_detection();
 vector<int> edge_detection(int fd);
