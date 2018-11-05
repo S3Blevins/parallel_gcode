@@ -23,6 +23,7 @@ void g_gen(int fd)
                         {1, 1, 0, 0, 0},
                         {1, 0, 0, 0, 0},
                         {1, 1, 0, 0, 0}};
+
     struct pixel pix;
     int rows = sizeof(matrix[0])/sizeof(matrix[0][0]);
     int cols = sizeof(matrix)/sizeof(matrix[0]);
