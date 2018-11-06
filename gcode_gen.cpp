@@ -10,10 +10,7 @@ using namespace std;
 struct pixel{
     int *value;
     int* next_p;
-    int* prev_p;
-    int* down_p;
-    int* left_down;
-    int* right_down;
+    int count;
 };
 
 void g_gen(int fd)
@@ -27,26 +24,25 @@ void g_gen(int fd)
     int rows = sizeof(matrix[0])/sizeof(matrix[0][0]);
     int cols = sizeof(matrix)/sizeof(matrix[0]);
 
-    pix.value = &matrix[0][0];
+    pix.value = &matrix[0][0] - 1;
     pix.next_p = pix.value + 1;
+    pix.count = 0;
 
     // traversing the matrix
     for(int row=0; row<rows; row++)
         for(int col=0; col<cols; col++)
         {
-            if(!*pix.value)
-            {
-                pix.prev_p = pix.value;
-                pix.value = pix.next_p;
-                pix.next_p++;
-                continue;
-            }
-
-            printf("opened, (%d, %d): %d\n", row,col, *pix.value);
-            pix.prev_p = pix.value;
             pix.value = pix.next_p;
             pix.next_p++;
 
+            if(!*pix.value)
+                continue;
+
+            if(!*pix.next_p)
+                continue;
+
+            pix.count = pix.count + 1;
+            printf("value: (%d, %d), next_p: (%d), count: %d \n", row,col, *pix.next_p, pix.count);
         }
 
 }
