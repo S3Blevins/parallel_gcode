@@ -1,6 +1,6 @@
 #include "kernel.h"         // Contains function prototypes for CUDA kernels
 #include <iostream>         // C++ I/O library
-#include "cimg_lib/CImg.h"  // For IMG handling
+#include "CImg.h"  // For IMG handling
 
 using namespace cimg_library;
 using namespace std;
