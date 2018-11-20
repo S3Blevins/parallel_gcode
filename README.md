@@ -5,4 +5,5 @@ g++ main.cpp -Wextra -Wfatal-errors -std=c++11 -pedantic -Dcimg_use_vt100 -Dcimg
 # To Install the library:
 
 sudo apt update
+
 sudo apt install cimg-dev
