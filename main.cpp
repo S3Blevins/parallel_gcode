@@ -1,6 +1,7 @@
 #include "kernel.h"         // Contains function prototypes for CUDA kernels
 #include <iostream>         // C++ I/O library
 #include "CImg.h"  // For IMG handling
+#include <cmath>
 
 using namespace cimg_library;
 using namespace std;
@@ -17,7 +18,7 @@ int main(int argc, char *argv[]) {
     char *file_name;
 
     // open a file
-    CImg<unsigned int> img;
+    CImg<unsigned char> img;
 
     try {
         img.assign(argv[1]);
@@ -39,8 +40,10 @@ int main(int argc, char *argv[]) {
     int Gx;
     int Gy;
     int p;
+    float length = 0;
+CImg<unsigned char> img_new;
+img_new.assign(width, height, 1, 3);
 
-    int intensity;
 
 for(int x = 1; x < width; x++) {
     for(int y = 1; y < height; y++) {
@@ -49,7 +52,7 @@ for(int x = 1; x < width; x++) {
         Gx = 0;
         Gy = 0;
 
-        // top left pixel
+        // top left
         p = img.atXY(x-1,y-1,0); // red channel
         p += img.atXY(x-1,y-1,1); // blue channel
         p += img.atXY(x-1,y-1,2); // green channel
@@ -59,13 +62,14 @@ for(int x = 1; x < width; x++) {
         Gx += -p;
         Gy += -p;
 
-        // remaining left column
+        // left middle
         p = img.atXY(x-1,y,0); // red channel
         p += img.atXY(x-1,y,1); // blue channel
         p += img.atXY(x-1,y,2); // green channel
 
         Gx += -2 * p;
 
+        // left bottom
         p = img.atXY(x-1,y+1,0); // red channel
         p += img.atXY(x-1,y+1,1); // blue channel
         p += img.atXY(x-1,y+1,2); // green channel
@@ -73,54 +77,56 @@ for(int x = 1; x < width; x++) {
         Gx += -p;
         Gy += p;
 
-        // middle pixels
+        // middle Top
         p = img.atXY(x,y-1,0); // red channel
         p += img.atXY(x,y-1,1); // blue channel
         p += img.atXY(x,y-1,2); // green channel
 
         Gy += -2 * p;
 
+        // middle bottom
         p = img.atXY(x,y+1,0); // red channel
         p += img.atXY(x,y+1,1); // blue channel
         p += img.atXY(x,y+1,2); // green channel
 
         Gy += 2 * p;
 
-        # right column
-        p = img.getpixel((x+1, y-1))
-        r = p[0]
-        g = p[1]
-        b = p[2]
+        // top right
+        p = img.atXY(x+1,y-1,0); // red channel
+        p += img.atXY(x+1,y-1,1); // blue channel
+        p += img.atXY(x+1,y-1,2); // green channel
 
-        Gx += (r + g + b)
-        Gy += -(r + g + b)
+        Gx = p;
+        Gy += -p;
 
-        p = img.getpixel((x+1, y))
-        r = p[0]
-        g = p[1]
-        b = p[2]
+        // middle right
+        p = img.atXY(x+1,y,0); // red channel
+        p += img.atXY(x+1,y,1); // blue channel
+        p += img.atXY(x+1,y,2); // green channel
 
-        Gx += 2 * (r + g + b)
+        Gx += 2 * p;
 
-        p = img.getpixel((x+1, y+1))
-        r = p[0]
-        g = p[1]
-        b = p[2]
+        // bottom right
+        p = img.atXY(x+1,y+1,0); // red channel
+        p += img.atXY(x+1,y+1,1); // blue channel
+        p += img.atXY(x+1,y+1,2); // green channel
 
-        Gx += (r + g + b)
-        Gy += (r + g + b)
+        Gx += p;
+        Gy += p;
 
-        # calculate the length of the gradient (Pythagorean theorem)
-        length = math.sqrt((Gx * Gx) + (Gy * Gy))
+        // calculate the length of the gradient (Pythagorean theorem)
+        length = sqrt((Gx*Gx) + (Gy*Gy));
 
-        # normalise the length of gradient to the range 0 to 255
-        length = length / 4328 * 255
+        // normalise the length of gradient to the range 0 to 255
 
-        length = int(length)
 
-        # draw the length in the edge image
-        #newpixel = img.putpixel((length,length,length))
-        newimg.putpixel((x,y),(length,length,length))
+        float test = length / 4328 * 255;
+        int new_test = (int) test;
+        printf("test = %d\n", new_test);
+        //draw the length in the edge image
+        img_new(x,y,0,0)=new_test;
+        img_new(x,y,0,1)=new_test;
+        img_new(x,y,0,2)=new_test;
     }
 }
 
@@ -153,7 +159,7 @@ for(int x = 1; x < width; x++) {
                             sum += img.atXY(x,y,0); // red channel
                             sum += img.atXY(x,y,1); // blue channel
                             sum += img.atXY(x,y,2); // green channel
-                            matrix[x][y] = sum;
+                            //matrix[x][y] = sum;
                         }
                     }
 
@@ -175,6 +181,9 @@ for(int x = 1; x < width; x++) {
             }
     }
 
+    CImgDisplay main_disp(img_new,"Image");
+    while (!main_disp.is_closed())
+        main_disp.wait();
 
     return 0;
 }
