@@ -1,189 +1,149 @@
-#include "kernel.h"         // Contains function prototypes for CUDA kernels
-#include <iostream>         // C++ I/O library
-#include "CImg.h"  // For IMG handling
-#include <cmath>
+#include "kernel.h" // Contains function prototypes and libs
+#define BUFF 4096
 
-using namespace cimg_library;
 using namespace std;
 
-void helper(void) {
-    printf("The main functionality of the program...\n");
-}
+void helper(void);
 
+/**
+ * Main function which processes the user input
+ * @param  argc number of arguments
+ * @param  argv arguments as collection of strings
+ * @return      0
+ */
 int main(int argc, char *argv[]) {
-    cimg::exception_mode(0);    // silence library exceptions so we can use our own
 
-    int fd;             // file descriptor for file to analyze
-    int cd;             // file descriptor for file to create
-    char *file_name;
-
-    // open a file
-    CImg<unsigned char> img;
-
-    try {
-        img.assign(argv[1]);
-    } catch (CImgIOException) {
-        cout << "Image file has not been located. Please use an appropriate image." << endl;
+    // if no file has been mentioned, throw an error.
+    if(argv[1] == NULL) {
+        printf("ERROR: Please use [-h] for proper runtime info\n");
+        helper();
         exit(0);
     }
 
-    int width = img.width();
-    int height = img.height();
-/*
-    int** matrix;
-    matrix = new int*[width];
-    for(int i = 0; i < width; i++) {
-        matrix[i] = new int[height];
+    // Check if file exists, exit else
+    ifstream exists(argv[1], ios::binary);
+    if(!exists) {
+        printf("Image file has not been located. \nPlease use an appropriate image.\n");
+        exit(0);
     }
-*/
-
-    int Gx;
-    int Gy;
-    int p;
-    float length = 0;
-CImg<unsigned char> img_new;
-img_new.assign(width, height, 1, 3);
 
 
-for(int x = 1; x < width; x++) {
-    for(int y = 1; y < height; y++) {
+    // | bit |      type      |            values
+    // |  0  | processor flag | 0 CPU          / 1 GPU
+    // |  1  | display flag   | 0 display off  / 1 display on
+    // |  2  | verbose mode   | 0 verbose off  / 1 verbose on
+    // |  3  | metadata flag  | 0 meta off     / 1 meta on
+    // |  4  | write image    | 0 write off    / 1 write on
+    char flags = 0x0;
+    int threshold = 2048;
 
-        // initialize Gx to 0 and Gy to 0 for every pixel
-        Gx = 0;
-        Gy = 0;
+    // default flags written
+    int default_proc_flag = 0;
+    int default_out_flag = 0;
 
-        // top left
-        p = img.atXY(x-1,y-1,0); // red channel
-        p += img.atXY(x-1,y-1,1); // blue channel
-        p += img.atXY(x-1,y-1,2); // green channel
-
-        // intensity ranges from 0 to 765 (255 * 3)
-        // accumulate the value into Gx, and Gy
-        Gx += -p;
-        Gy += -p;
-
-        // left middle
-        p = img.atXY(x-1,y,0); // red channel
-        p += img.atXY(x-1,y,1); // blue channel
-        p += img.atXY(x-1,y,2); // green channel
-
-        Gx += -2 * p;
-
-        // left bottom
-        p = img.atXY(x-1,y+1,0); // red channel
-        p += img.atXY(x-1,y+1,1); // blue channel
-        p += img.atXY(x-1,y+1,2); // green channel
-
-        Gx += -p;
-        Gy += p;
-
-        // middle Top
-        p = img.atXY(x,y-1,0); // red channel
-        p += img.atXY(x,y-1,1); // blue channel
-        p += img.atXY(x,y-1,2); // green channel
-
-        Gy += -2 * p;
-
-        // middle bottom
-        p = img.atXY(x,y+1,0); // red channel
-        p += img.atXY(x,y+1,1); // blue channel
-        p += img.atXY(x,y+1,2); // green channel
-
-        Gy += 2 * p;
-
-        // top right
-        p = img.atXY(x+1,y-1,0); // red channel
-        p += img.atXY(x+1,y-1,1); // blue channel
-        p += img.atXY(x+1,y-1,2); // green channel
-
-        Gx = p;
-        Gy += -p;
-
-        // middle right
-        p = img.atXY(x+1,y,0); // red channel
-        p += img.atXY(x+1,y,1); // blue channel
-        p += img.atXY(x+1,y,2); // green channel
-
-        Gx += 2 * p;
-
-        // bottom right
-        p = img.atXY(x+1,y+1,0); // red channel
-        p += img.atXY(x+1,y+1,1); // blue channel
-        p += img.atXY(x+1,y+1,2); // green channel
-
-        Gx += p;
-        Gy += p;
-
-        // calculate the length of the gradient (Pythagorean theorem)
-        length = sqrt((Gx*Gx) + (Gy*Gy));
-
-        // normalise the length of gradient to the range 0 to 255
-
-
-        float test = length / 4328 * 255;
-        int new_test = (int) test;
-        printf("test = %d\n", new_test);
-        //draw the length in the edge image
-        img_new(x,y,0,0)=new_test;
-        img_new(x,y,0,1)=new_test;
-        img_new(x,y,0,2)=new_test;
-    }
-}
-
-
-
-
-    //vector<vector<int>> matrix = new int[width][height];
+    // string allocations for input and output names
+    string input_name = argv[1];
+    string output_name = input_name;
 
     int c;              // switch case variable
-    while((c = getopt(argc, argv, "w:th")) != -1) {
+    while((c = getopt(argc, argv, "icgdo:vwt:h")) != -1) {
         switch(c) {
-            case 'w':   // creates a file to write to
-                    file_name = optarg;
-
-                    int sum;
-                    // shorthand forloop completed by library
-                    /*
-                    cimg_forXY(img, x, y) {
-                        sum = 0;
-                        sum += img.atXY(x,y,0); // red channel
-                        sum += img.atXY(x,y,1); // blue channel
-                        sum += img.atXY(x,y,2); // green channel
-
-                        printf("%d ", sum);
-                    }
-                    */
-                    for(int x = 0; x < height; x++) {
-                        for(int y = 0; y < width; y++) {
-                            sum = 0;
-                            sum += img.atXY(x,y,0); // red channel
-                            sum += img.atXY(x,y,1); // blue channel
-                            sum += img.atXY(x,y,2); // green channel
-                            //matrix[x][y] = sum;
-                        }
-                    }
-
-                    //cout << img.data() << endl;
-                    //vector<int> matrix = img.vector();
-                    break;
-            case 't':
-                    cout << img.spectrum() << endl;
-                    printf("Width: %i\n", width);
-                    printf("Height: %i\n", height);
-                    printf("Total Pixel Count: %.2f MP\n", ((float)(width * height))/1000000);
-                    break;
-            case 'h':
-                    //helper();
-                    break;
-            default:                // defaults to usage again
-                    //helper();
-                    break;
+            case 'i':   // run with metadata output
+                flags |= 0x8;
+                break;
+            case 'c':   // run edge_detection on cpu (CANNOT BE RUN WITH '-g' FLAG)
+                default_proc_flag = 1;
+                break;
+            case 'g':   // run edge_detection on GPU (CANNOT BE RUN WITH '-c' FLAG)
+                flags |= 0x1;
+                break;
+            case 'd':   // display the edge detection filter applied to image
+                flags |= 0x2;
+                break;
+            case 'o':   // change gcode output name
+                output_name = optarg;
+                default_out_flag = 1;
+                break;
+            case 'v':   // enable verbose mode [FOR DEBUGGING]
+                flags |= 0x4;
+                break;
+            case 'w':   // enables writing of edge detection filter to a file
+                flags |= 0x10;
+                break;
+            case 't':   // filter threshold (HIDDEN FLAG -> DEFAULT is 2048)
+                try {
+                    threshold = stoi(optarg);
+                    //printf("threshold %d\n", threshold);
+                } catch (std::invalid_argument&e) {
+                    printf("Please use a proper threshold value.\n");
+                    exit(0);
+                }
+                break;
+            case 'h':   // helper function (falls through to default)
+            default:    // defaults to usage again
+                helper();
+                break;
             }
     }
 
-    CImgDisplay main_disp(img_new,"Image");
-    while (!main_disp.is_closed())
-        main_disp.wait();
+    // lets user know if they have not selected a processor, so use default.
+    if(!default_proc_flag) {
+        printf("THE CPU IS USED BY DEFAULT.\n");
+        printf("Use the [-c] flag to turn off this warning.\n");
+    }
+
+    // isolate the string if the flag has not been selected.
+    if(!default_out_flag) {
+        string delimiter = ".";
+        output_name = output_name.substr(0, output_name.find(delimiter));
+        output_name.append("_out");
+    }
+
+    // call the wrapper function which compiles according to the flags
+    edge_detection_wrapper(flags, input_name, output_name, threshold);
 
     return 0;
+}
+
+/**
+ * The helper function outputs command and flag usage.
+ */
+void helper(void) {
+    printf("\nCOMMAND USAGE FOR TOOL:\n\n");
+    printf("\t./generator FILE [-i] [-c] [-g] [-d] [-o OUTPUT] [-v] [-w]\n\n");
+
+    printf("\tFILE (REQUIRED)\n");
+    printf("\tThe FILE is the name of the input file.\n\n");
+
+    printf("\t[-i]\n");
+    printf("\tThe flag will enable the program to output the metadata of image\n\n");
+
+    printf("\t[-c] (REQUIRED or [-g])\n");
+    printf("\tThe flag will enable the program to process the FILE the CPU\n");
+    printf("\tNOTE: This flag cannot be used alongside the '-g' flag.\n\n");
+
+    printf("\t[-g] (REQUIRED or [-c])\n");
+    printf("\tThe flag will enable the program to process the FILE the GPU\n");
+    printf("\tNOTE: This flag cannot be used alongside the '-c' flag.\n\n");
+
+    printf("\t[-d]\n");
+    printf("\tThe flag enables the display the output of the edge detection.\n");
+    printf("\tNOTE: X11 forwarding required and -X flag when SSH'ing.\n\n");
+
+    printf("\t[-o OUTPUT]\n");
+    printf("\tThe flag will overwrite the default gcode output name of FILE_out.gcode\n");
+    printf("\tto 'OUTPUT.gcode'.\n\n");
+
+    printf("\t[-v] (VERBOSE)\n");
+    printf("\tThe flag enables a printout of the steps that are being performed\n");
+    printf("\tby the program as they are executed.\n\n");
+
+    printf("\t[-w]\n");
+    printf("\tThe flag will write the image to a file when it has undergone the\n");
+    printf("\tedge detection.\n");
+    printf("\tNOTE: Will assume the name of the OUTPUT with image file extension.\n\n");
+
+    printf("\t[-h]\n");
+    printf("\tThe helper function that is used to explain flags and the functionality\n");
+    printf("\tof the program.\n\n");
 }
