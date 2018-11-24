@@ -33,7 +33,7 @@ If Block size = 50, then we need (32 threads per block) = (2 * 32 to cover 50) =
                     This means we are wasting 14 threads.
 */
 __global__
-void sobelFilterKernel(int *imageRGB, int height, int *Gx_matrix, int *Gy_matrix) {
+void sobelFilterKernel(int *imageRGB, int *output, int width, int height) {
 // SobelFilter <<< # blocks in grid , # of threads in blocks >>> ()
 }
 
@@ -131,61 +131,55 @@ vector<int> vectorize_img(CImg<unsigned char> img, int *width, int *height) {
 
 vector<int> edge_detection_gpu(vector<int> img, int width, int height, int threshold) {
 
-    int size_picture = width * height;
+    int image_size = width * height;
+    int image_array_size = image_size * sizeof(int);
 
-    int picture_memory = size_picture * sizeof(int);
-
-    //NOTE: we can convert a vector into an integer array needed
+    // NOTE: we can convert a vector into an integer array needed
     // for the kernel by int* img_array = &img[0]
     // which makes a pointer from the first index which is then
     // continuously allocated.
 
-    //Start allocating memory for device variables
-    //IMG_array is the rgb values of the picture.
-    int *IMG_array = (int *) malloc(picture_memory);
-    if (IMG_array == NULL) {
-        printf("Could not allocate memory for IMG_array: failed\n");
-        exit(1);
-    }
-    int *sobelPictureOutput = (int *) malloc(picture_memory);
-    if (sobelPictureOutput == NULL) {
+    // convert vector into standard image array
+    int* img_array = &img[0];
+
+    // Device IMG_array, device Sobel Filter x, device Sobel Filter y
+    int *inputIMG_array, *outputIMG_array;
+
+    // allocating memory for device variables
+    //--------------------------------------------------------------------------
+    cudaError_t err = cudaMalloc((void **) &outputIMG_array, image_array_size);
+    error_check(err);
+
+    err = cudaMalloc((void **) &inputIMG_array, image_array_size);
+    error_check(err);
+    //--------------------------------------------------------------------------
+
+    // Copy array to device memory
+    cudaMemcpy(inputIMG_array, img_array, image_array_size, cudaMemcpyHostToDevice);
+
+    // Launch kernel (UNSURE OF GRID OR BLOCK SIZE)
+    sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height);
+
+    // Start allocating memory for new device variables
+    int *sobelImageOutput;
+
+    // sobelPictureOutput is the RGB values of the image normalized to sobelFilter
+    sobelImageOutput = (int *) malloc(image_array_size);
+    if (sobelImageOutput == NULL) {
         printf("Could not allocate memory for sobelPictureOutput: failed\n");
         exit(1);
     }
 
-    //Device IMG_array, device Sobel Filter x, device Sobel Filter y
-    int *outputIMG_array, dSFx, dSFy;
 
-    //allocating memory for device variables
-    //--------------------------------------------------------------------------
-    cudaError_t err = cudaMalloc((void **) &outputIMG_array, picture_memory);
-    error_check(err);
-
-    err = cudaMalloc((void **) &dSFx, picture_memory);
-    error_check(err);
-
-    err = cudaMalloc((void **) &dSFy, picture_memory);
-    error_check(err);
-    //--------------------------------------------------------------------------
-
-    //Copy dSFx and dSFy to device memory.
-
-    //NOTE: need to declare sobelFilter_x & y
-    //cudaMemcpy(dSFx, sobelFilter_x, picture_memory, cudaMemcpyHostToDevice);
-    //cudaMemcpy(dSFy, sobelFilter_y, picture_memory, cudaMemcpyHostToDevice);
-
-    //Launch kernel
-    //sobelFilterKernel <<< 1, 1, >>> (outputIMG_array, width, height, dSFx, dSFy);
+    // Success - This point should have the picture in an output array
+    cudaMemcpy(sobelImageOutput, outputIMG_array, image_array_size, cudaMemcpyDeviceToHost);
 
 
-    //Success - This point should have the picture in an output array
-    //cudaMemcpy(sobelPictureOutput, outputIMG_array, picture_memory, cudaMemcpyDeviceToHost);
+    // Here we have sobelPictureOutput that we need to print and show the results
 
-
-    //Here we have sobelPictureOutput that we need to print and show the results
-
-    // for now...
-    return img;
+    // I think this is how we convert an array into a vector?
+    vector<int> out(sobelImageOutput, sobelImageOutput + image_size);
+    return out;
 }
 
 /**
