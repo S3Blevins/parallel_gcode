@@ -356,7 +356,7 @@ void next_to(int **image_2d, int **image_visited, int x, int y) {
             if(image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
                 image_visited[new_x][new_y] = 1;
                 printf("pixel[%d][%d] = %d\n", new_x, new_y, image_2d[new_x][new_y]);
-                outputFile << "pixel[" << new_x << "]" << endl;
+                outputFile << "G0 X" << new_x << "Y" << new_y << endl;
                 next_to(image_2d, image_visited, new_x, new_y);
             }
         }
@@ -369,6 +369,8 @@ int gcode(vector<int> image, int width, int height) {
     image_2d = new int *[width];
     int **image_visited;
     image_visited = new int *[width];
+
+    gcode_primer();
 
     // rebuild the image in 2d format
     for(int i = 0; i < width; i++) {
