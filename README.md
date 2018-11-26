@@ -12,7 +12,7 @@ sudo apt install cimg-dev
 
 ssh name@server_ip -X 
 
-#TODO
+# TODO
 
 * Get the cude implemented variation of the edge detection algorithm working
 
