@@ -14,6 +14,8 @@ ssh name@server_ip -X
 
 # TODO
 
+* Clean the kernel of excess <includes>
+
 * Get the cude implemented variation of the edge detection algorithm working
 
 * Figure out the linking for the gcode gen file
