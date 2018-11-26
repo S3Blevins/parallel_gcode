@@ -11,6 +11,7 @@ sudo apt install cimg-dev
 # To Run graphics on external computer
 
 ssh name@server_ip -X 
+
 #TODO
 
 * Get the cude implemented variation of the edge detection algorithm working
