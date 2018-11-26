@@ -257,13 +257,13 @@ int display_img(vector<int> img, int width, int height, int write_flag, string o
             new_img.atXY(x,y,2) = img[x + (y * width)];
         }
     }
-
+/*
     // Display the image
     CImgDisplay main_disp(new_img,"Image");
     while (!main_disp.is_closed()) {
         main_disp.wait();
     }
-
+*/
     // if write_flag exists, then save the image
     if(write_flag) {
         output.append(".bmp");
