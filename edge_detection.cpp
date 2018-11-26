@@ -310,7 +310,7 @@ int converter_1d(int x, int y, int width) {
     return x + (y * (width));
 }
 */
-void gcode_primer(void) {
+void gcode_prolog(void) {
     // G1 means to extrude
     // G0 means to not extrude
     // comments are denoted by a semicolon
@@ -331,13 +331,30 @@ void gcode_primer(void) {
 
     outputFile << ";Layer count: 1" << endl;
     outputFile << ";LAYER:0" << endl;
-    outputFile << "M107           ;Turn off the fan" << endl;
+    outputFile << "M107           ;Turn off the fan" << endl << endl;
+    outputFile << ";G1 requires to extrude" << endl;
+    outputFile << ";G0 does not require extrusion" << endl << endl;
 
     // actual gcode goes below;
     // G0 {speed} X{position} Y{position}
 
+}
+
+void gcode_epilog(void) {
+    // actual gcode goes below;
+    // G0 {speed} X{position} Y{position}
+
+    outputFile << endl;
+    outputFile << ";END GCODE" << endl;
+    outputFile << "M104 S0        ;extruder heater off" << endl;
+    outputFile << "M140 S0        ;heated bed heater off (if you have it)" << endl;
+    outputFile << "G91            ;relative positioning" << endl;
+    outputFile << "G28 X0 Y0      ;move X/Y to min endstops, so the head is out of the way" << endl;
+    outputFile << "M84            ;steppers off" << endl;
+    outputFile << "G90            ;absolute positioning" << endl;
 
 }
+
 void next_to(int **image_2d, int **image_visited, int x, int y) {
 
     int new_x;
@@ -356,7 +373,7 @@ void next_to(int **image_2d, int **image_visited, int x, int y) {
             if(image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
                 image_visited[new_x][new_y] = 1;
                 printf("pixel[%d][%d] = %d\n", new_x, new_y, image_2d[new_x][new_y]);
-                outputFile << "G0 X" << new_x << "Y" << new_y << endl;
+                outputFile << "G0" << " F1200" << " X" << new_x << " Y" << new_y << endl;
                 next_to(image_2d, image_visited, new_x, new_y);
             }
         }
@@ -370,7 +387,7 @@ int gcode(vector<int> image, int width, int height) {
     int **image_visited;
     image_visited = new int *[width];
 
-    gcode_primer();
+    gcode_prolog();
 
     // rebuild the image in 2d format
     for(int i = 0; i < width; i++) {
@@ -401,6 +418,8 @@ int gcode(vector<int> image, int width, int height) {
              }
          }
      }
+
+     gcode_epilog();
 
     return 0;
 }
