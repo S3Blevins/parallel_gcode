@@ -1,9 +1,12 @@
 //#include <cuda.h>
 #include "kernel.h"
+#include <queue>
+#include <fstream>
 
 using namespace cimg_library;
 using namespace std;
 
+#define BUF 4096
 /*
     NOTE: The cuda kernels do not have issues with 2d arrays that are declared
     before compile time
@@ -24,6 +27,11 @@ int Gy_matrix[3][3] = {
     {0, 0, 0},
     {-1, -2, -1}
 };
+
+// GLOBAL
+ofstream outputFile("gcode_out_test.gcode");
+
+int gcode(vector<int> image, int width, int height);
 
 /**
  * edge detection wrapper processes the appropriate flags
@@ -64,8 +72,10 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
         //printf("CPU Processed\n");
 
         // overwrite the image vector with sobel filter
-        image_vector = edge_detection_cpu(image_vector, width, height, threshold);
+        //image_vector = edge_detection_cpu(image_vector, width, height, threshold);
     }
+
+    gcode(image_vector, width, height);
 
     // display the image when the filter has been applied
     if(flags & 0x2) {
@@ -183,8 +193,8 @@ vector<int> vectorize_img(CImg<unsigned char> img, int *width, int *height) {
     vector<int> image_vector((*width) * (*height));
 
     // loop through pixels x and y
-    for(int x = 0; x <= *width; x++) {
-        for(int y = 0; y <= *height; y++) {
+    for(int x = 0; x < *width; x++) {
+        for(int y = 0; y < *height; y++) {
            image_vector[x + (y * (*width))] = img.atXY(x,y);
            //printf("%i\n", image_vector[x + (y * (*width))]);
         }
@@ -259,8 +269,8 @@ int display_img(vector<int> img, int width, int height, int write_flag, string o
     CImg<unsigned char> new_img;
     new_img.assign(width, height, 1, 3);
 
-    for(int x = 0; x <= width; x++) {
-        for(int y = 0; y <= height; y++) {
+    for(int x = 0; x < width; x++) {
+        for(int y = 0; y < height; y++) {
             // Red, Green, and Blue values are all the same
             new_img.atXY(x,y,0) = img[x + (y * width)];
             new_img.atXY(x,y,1) = img[x + (y * width)];
@@ -279,6 +289,116 @@ int display_img(vector<int> img, int width, int height, int write_flag, string o
         output.append(".bmp");
         new_img.save(output.c_str());
     }
+
+    return 0;
+}
+/*
+
+// write the x and y coordinates from a position on a
+// 1d array where x and y are passed by reference because I didn't
+// know whether or not to use tuples
+void converter_xy(int position, int *x, int *y, int width) {
+
+    *x = position % width;
+    *y = position - *x / width;
+}
+
+// converts an x and y coordinate into a
+// position on a 1d array
+int converter_1d(int x, int y, int width) {
+
+    return x + (y * (width));
+}
+*/
+void gcode_primer(void) {
+    // G1 means to extrude
+    // G0 means to not extrude
+    // comments are denoted by a semicolon
+
+    outputFile << "M190 S50.000000" << endl;
+    outputFile << "M109 S215.000000" << endl << endl;
+
+    outputFile << "G21            ;metric values" << endl;
+    outputFile << "G90            ;absolute positioning" << endl;
+    outputFile << "M82            ;set extruder to absolute mode" << endl;
+    outputFile << "M107           ;start with the fan off" << endl;
+    outputFile << "G28 X0 Y0      ;move X/Y to min endstops" << endl;
+    outputFile << "G28 Z0         ;move Z to min endstops" << endl;
+    outputFile << "G0 Z15.0 F9000 ;move the platform down 15mm" << endl;
+    outputFile << "G92 E0         ;zero the extruded length" << endl;
+    outputFile << "G1 F9000       ;Put printing message on LCD screen" << endl;
+    outputFile << "M117 DRAWING..." << endl << endl;
+
+    outputFile << ";Layer count: 1" << endl;
+    outputFile << ";LAYER:0" << endl;
+    outputFile << "M107           ;Turn off the fan" << endl;
+
+    // actual gcode goes below;
+    // G0 {speed} X{position} Y{position}
+
+
+}
+void next_to(int **image_2d, int **image_visited, int x, int y) {
+
+    int new_x;
+    int new_y;
+
+    //image_visited[x][y] = 1;
+    //printf("original pixel\n");
+    //printf("pixel[%d][%d] = %d\n", x, y, image_2d[x][y]);
+    // look at all pixels surrounding the main pixel in question
+    //printf("checking pixels...\n");
+    for(int col = 0; col < 3; col++) {
+        for(int row = 0; row < 3; row++) {
+            new_x = x + col - 1;
+            new_y = y + row - 1;
+            //printf("checking pixel[%d][%d] = %d\n", new_x, new_y, image_visited[new_x][new_y]);
+            if(image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
+                image_visited[new_x][new_y] = 1;
+                printf("pixel[%d][%d] = %d\n", new_x, new_y, image_2d[new_x][new_y]);
+                outputFile << "pixel[" << new_x << "]" << endl;
+                next_to(image_2d, image_visited, new_x, new_y);
+            }
+        }
+    }
+}
+
+int gcode(vector<int> image, int width, int height) {
+
+    int **image_2d;
+    image_2d = new int *[width];
+    int **image_visited;
+    image_visited = new int *[width];
+
+    // rebuild the image in 2d format
+    for(int i = 0; i < width; i++) {
+        image_2d[i] = new int[height];
+        image_visited[i] = new int[height];
+        for(int j = 0; j < height; j++) {
+            image_2d[i][j] = image[i + (j * (width))];
+            image_visited[i][j] = 0;
+        }
+    }
+
+    // image_2d will have a normal color array where anything above
+    // a 50 is considered a path.
+
+    // image_visited will have a 0 if the item has not been visited
+    // and a 1 if the image has been visited.
+
+     // iterate through the 2d array(s)
+     for(int x = 1; x < (width - 1); x++) {
+         for(int y = 1; y < (height - 1); y++) {
+             // if the image is grey/white and has not been visited
+             if(image_2d[x][y] >= 50 && image_visited[x][y] == 0) {
+                //printf("pixel[%d][%d] = %d\n", x, y, image_2d[x][y]);
+                 // recursive call once a grey/white pixel has been found
+                 // and follow up with any pixels which are grey/white
+                 // immediately next to that
+                next_to(image_2d, image_visited, x, y);
+             }
+         }
+     }
 
     return 0;
 }
