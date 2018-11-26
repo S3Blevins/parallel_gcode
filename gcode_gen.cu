@@ -60,6 +60,13 @@ void gcode_epilog(void) {
 
 }
 
+/**
+ * checks pixels adjacent to the main pixel located at x and y
+ * @param image_2d      image in 2d array of format
+ * @param image_visited pixel visitation flags for each pixel in 2d format
+ * @param x             x position of pixel to check adjacents
+ * @param y             y position of pixel to check adjacents
+ */
 void next_to(int **image_2d, int **image_visited, int x, int y) {
 
     int new_x;
@@ -86,6 +93,13 @@ void next_to(int **image_2d, int **image_visited, int x, int y) {
     }
 }
 
+/**
+ * processes through all pixels that have not been visited.
+ * @param  image  1d vector of image
+ * @param  width  [description]
+ * @param  height [description]
+ * @return        [description]
+ */
 int gcode(vector<int> image, int width, int height) {
 
     int **image_2d;
@@ -96,6 +110,8 @@ int gcode(vector<int> image, int width, int height) {
     gcode_prolog();
 
     // rebuild the image in 2d format
+    // NOTE: we could probably format in 1d but I didnt want to spend much
+    // time on this in case somebody had another idea
     for(int i = 0; i < width; i++) {
         image_2d[i] = new int[height];
         image_visited[i] = new int[height];
@@ -131,11 +147,23 @@ int gcode(vector<int> image, int width, int height) {
     return 0;
 }
 
+/**
+ * gcode generator wrapper function.
+ * @param img         1d vector of image pixel contents
+ * @param width       the width of the image
+ * @param height      the height of the image
+ * @param output_name output of name to be written
+ */
 void g_gen(vector<int> img, int width, int height, string output_name) {
+
+    // add gcode file extension
     output_name.append(".gcode");
 
+    // open file
+    // NOTE: we should probably throw in a try-catch and figure out write flags
     outputFile.open(output_name);
 
+    // call the function
     gcode(img, width, height);
 
 }
