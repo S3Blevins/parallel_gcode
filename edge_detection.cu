@@ -119,8 +119,8 @@ vector<int> vectorize_img(CImg<unsigned char> img, int *width, int *height) {
     vector<int> image_vector((*width) * (*height));
 
     // loop through pixels x and y
-    for(int x = 0; x <= *width; x++) {
-        for(int y = 0; y <= *height; y++) {
+    for(int x = 0; x < *width; x++) {
+        for(int y = 0; y < *height; y++) {
            image_vector[x + (y * (*width))] = img.atXY(x,y);
            //printf("%i\n", image_vector[x + (y * (*width))]);
         }
