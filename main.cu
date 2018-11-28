@@ -86,10 +86,10 @@ int main(int argc, char *argv[]) {
     }
 
     // lets user know if they have not selected a processor, so use default.
-    if(!default_proc_flag) {
+    /*if(default_proc_flag) {
         printf("THE CPU IS USED BY DEFAULT.\n");
         printf("Use the [-c] flag to turn off this warning.\n");
-    }
+    }*/
 
     // isolate the string if the flag has not been selected.
     if(!default_out_flag) {

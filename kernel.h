@@ -28,7 +28,7 @@ int metadata(CImg<unsigned char> img, int threshold);
 void error_check(cudaError_t err);
 
 __global__
-void sobelFilterKernel(int *imageRGB, int *output, int width, int height);
+void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int Gx_matrix[][3], int Gy_matrix[][3], int threshold);
 
 vector<int> edge_detection_gpu(vector<int> img, int width, int height, int threshold);
 
