@@ -1,30 +1,18 @@
 //#include <cuda.h>
 #include "kernel.h"
 #include "gcode_gen.cu"
+#include <stdio.h>
 
 using namespace cimg_library;
 using namespace std;
 
-/*
-    NOTE: The cuda kernels do not have issues with 2d arrays that are declared
-    before compile time
-*/
-
 // sobelFilter x matrix
 // (PREDEFINED AT COMPILE TIME)
-int Gx_matrix[3][3] = {
-    {1, 0, -1},
-    {2, 0, -2},
-    {1, 0, -1}
-};
+int Gx_matrix[9] = {1, 0, -1, 2, 0, -2, 1, 0, -1};
 
 // sobelFilter y matrix
 // (PREDEFINED AT COMPILE TIME)
-int Gy_matrix[3][3] = {
-    {1, 2, 1},
-    {0, 0, 0},
-    {-1, -2, -1}
-};
+int Gy_matrix[9] = {1, 2, 1, 0, 0, 0, -1, -2, -1};
 
 /*
 Thread block size should always be a multiple of 32. This is to maximize
@@ -34,49 +22,55 @@ If Block size = 50, then we need (32 threads per block) = (2 * 32 to cover 50) =
                     This means we are wasting 14 threads.
 */
 __global__
-void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int Gx_matrix[][3], int Gy_matrix[][3], int threshold) {
+void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *Gx_array, int *Gy_array, int threshold) {
     int Gx, Gy;
     int length;
     int normalized_pixel;
 
-    //calculate thread locations (i)
+    //calculate thread locations (threadIDx)
     int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int x = i % width;  // x is where in the matrix x direction.
-    int y = (i / width); // y is where in the matrix in the y direction.
+    int x = i % width;
+    int y = i / width;
+
+    // loop through pixels x and y
+    //for(int x = 1; x < width; x++) {
+    //    for(int y = 1; y < height; y++) {
 
     // initialize Gx and Gy intensities to 0 for every pixel
     Gx = 0;
     Gy = 0;
     int RGB;
-    if (i < (width * height) ) {
-        // loop through the filter matrices
-        for(int col = 0; col < 3; col++) {
-            for(int row = 0; row < 3; row++) {
 
-                // make index correction for pixels surrounding x and y
-                // img.atXY(x + i - 1 , y + j - 1)
-                if (x > 0 && y > 0  && (x < height - 1) && (y < width - 1))
-                    RGB = imageRGB[(x + col - 1) + (width * (y + row - 1))];
+    if((i < (width * height)) && (x > 0) && (y > 0)  && (x < width - 1) && (y < height - 1)) {
 
-                // summation of Gx and Gy intensities
-                Gx += Gx_matrix[col][row] * RGB;
-                Gy += Gy_matrix[col][row] * RGB;
-            }
+        for(int filter_pos = 0; filter_pos < 9; filter_pos++) {
+            int col = filter_pos % 3;
+            int row = filter_pos / 3;
+
+            RGB = imageRGB[(x + col - 1) + (width * (y + row - 1))];
+
+            // summation of Gx and Gy intensities
+            Gx += Gx_array[filter_pos] * RGB;
+            Gy += Gy_array[filter_pos] * RGB;
         }
-        if (Gx < 0)
+
+        // absolute value
+        if(Gx < 0) {
             Gx *= -1;
-        if (Gy < 0)
+        }
+        if(Gy < 0) {
             Gy *= -1;
+        }
+
         // absolute value of intensities
         length = Gx + Gy;
 
         // normalize the gradient with threshold value (DEFAULT: 2048)
-        normalized_pixel = (length * 255) / threshold;
-
-        // set pixel value
+        normalized_pixel = length * 255 / threshold;
+        __syncthreads();
         output[x + (width * y)] = normalized_pixel;
     }
-
+     __syncthreads();
 }
 
 /**
@@ -138,7 +132,7 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
 
     // call g-code generator here
     // needs to be linked in makefile
-    // g_gen(image_vector, width, height, output_name);
+     //g_gen(image_vector, width, height, output_name);
 
     // display the image when the filter has been applied
     if(flags & 0x2) {
@@ -176,6 +170,8 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     int image_size = width * height;
     int image_array_size = image_size * sizeof(int);
 
+    int matrix_array_size = 9 * sizeof(int);
+
     // NOTE: we can convert a vector into an integer array needed
     // for the kernel by int* img_array = &img[0]
     // which makes a pointer from the first index which is then
@@ -185,7 +181,7 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     int* img_array = &img[0];
 
     // Device IMG_array, device Sobel Filter x, device Sobel Filter y
-    int *inputIMG_array, *outputIMG_array;
+    int *inputIMG_array, *outputIMG_array, *sobelx, *sobely;
 
     // allocating memory for device variables
     //--------------------------------------------------------------------------
@@ -194,16 +190,31 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
 
     err = cudaMalloc((void **) &inputIMG_array, image_array_size);
     error_check(err);
+
+    err = cudaMalloc((void **) &sobelx, matrix_array_size);
+    error_check(err);
+
+    err = cudaMalloc((void **) &sobely, matrix_array_size);
+    error_check(err);
     //--------------------------------------------------------------------------
 
     // Copy array to device memory
     cudaMemcpy(inputIMG_array, img_array, image_array_size, cudaMemcpyHostToDevice);
 
+    // Copy array to device memory
+    cudaMemcpy(sobelx, Gx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
+
+    // Copy array to device memory
+    cudaMemcpy(sobely, Gy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
+
     // Launch kernel (UNSURE OF BLOCKS PER GRID vs THREADS PER BLOCK)
-    sobelFilterKernel <<< ceil(image_size/256), 256>>> (inputIMG_array, outputIMG_array, width, height, Gx_matrix, Gy_matrix, threshold);
+    sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, sobelx, sobely, threshold);
+
+cudaDeviceSynchronize();
 
     // Start allocating memory for new device variables
     int *sobelImageOutput;
+//262144
 
     // sobelPictureOutput is the RGB values of the image normalized to sobelFilter
     sobelImageOutput = (int *) malloc(image_array_size);
@@ -236,6 +247,10 @@ vector<int> edge_detection_cpu(vector<int> img, int width, int height, int thres
     int Gx;
     int Gy;
 
+    int col;
+    int row;
+
+    int RGB;
     int length;
     int normalized_pixel;
 
@@ -247,21 +262,18 @@ vector<int> edge_detection_cpu(vector<int> img, int width, int height, int thres
             // initialize Gx and Gy intensities to 0 for every pixel
             Gx = 0;
             Gy = 0;
-            int RGB;;
 
-            // loop through the filter matrices
-            for(int col = 0; col < 3; col++) {
-                for(int row = 0; row < 3; row++) {
+            for(int i = 0; i < 9; i++) {
+                col = i % 3;
+                row = i / 3;
 
-                    // make index correction for pixels surrounding x and y
-                    // img.atXY(x + i - 1 , y + j - 1)
-                    RGB = img[(x + col - 1) + (width * (y + row - 1))];
+                RGB = img[(x + col - 1) + (width * (y + row - 1))];
 
-                    // summation of Gx and Gy intensities
-                    Gx += Gx_matrix[col][row] * RGB;
-                    Gy += Gy_matrix[col][row] * RGB;
-                }
+                // summation of Gx and Gy intensities
+                Gx += Gx_matrix[i] * RGB;
+                Gy += Gy_matrix[i] * RGB;
             }
+
             // absolute value of intensities
             length = abs(Gx) + abs(Gy);
 
@@ -297,17 +309,17 @@ int display_img(vector<int> img, int width, int height, int write_flag, string o
             new_img.atXY(x,y,1) = img[x + (y * width)];
             new_img.atXY(x,y,2) = img[x + (y * width)];
             if(new_img.atXY(x,y) >= 50) {
-                printf("new_img.atXY[%d][%d] = %d\n", x, y, new_img.atXY(x,y));
+                //printf("new_img.atXY[%d][%d] = %d\n", x, y, new_img.atXY(x,y));
             }
         }
     }
-
+/*
     // Display the image
-    /*CImgDisplay main_disp(new_img,"Image");
+    CImgDisplay main_disp(new_img,"Image");
     while (!main_disp.is_closed()) {
         main_disp.wait();
-    }*/
-
+    }
+*/
     // if write_flag exists, then save the image
     if(write_flag) {
         output.append(".bmp");
