@@ -55,7 +55,7 @@ void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int Gx
 
                 // make index correction for pixels surrounding x and y
                 // img.atXY(x + i - 1 , y + j - 1)
-                if (x > 0 && y > 0  && x < height && y < width)
+                if (x > 0 && y > 0  && (x < height - 1) && (y < width - 1))
                     RGB = imageRGB[(x + col - 1) + (width * (y + row - 1))];
 
                 // summation of Gx and Gy intensities
@@ -63,11 +63,15 @@ void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int Gx
                 Gy += Gy_matrix[col][row] * RGB;
             }
         }
+        if (Gx < 0)
+            Gx *= -1;
+        if (Gy < 0)
+            Gy *= -1;
         // absolute value of intensities
-        length = abs(Gx) + abs(Gy);
+        length = Gx + Gy;
 
         // normalize the gradient with threshold value (DEFAULT: 2048)
-        normalized_pixel = length * 255 / threshold;
+        normalized_pixel = (length * 255) / threshold;
 
         // set pixel value
         output[x + (width * y)] = normalized_pixel;
@@ -196,7 +200,7 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     cudaMemcpy(inputIMG_array, img_array, image_array_size, cudaMemcpyHostToDevice);
 
     // Launch kernel (UNSURE OF BLOCKS PER GRID vs THREADS PER BLOCK)
-    sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, Gx_matrix, Gy_matrix, threshold);
+    sobelFilterKernel <<< ceil(image_size/256), 256>>> (inputIMG_array, outputIMG_array, width, height, Gx_matrix, Gy_matrix, threshold);
 
     // Start allocating memory for new device variables
     int *sobelImageOutput;
