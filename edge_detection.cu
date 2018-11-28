@@ -34,8 +34,50 @@ If Block size = 50, then we need (32 threads per block) = (2 * 32 to cover 50) =
                     This means we are wasting 14 threads.
 */
 __global__
-void sobelFilterKernel(int *imageRGB, int *output, int width, int height) {
-// SobelFilter <<< # blocks in grid , # of threads in blocks >>> ()
+void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int Gx_matrix[][3], int Gy_matrix[][3], int threshold) {
+    int Gx, Gy;
+    int length;
+    int normalized_pixel;
+
+    //calculate thread locations (threadIDx)
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int x = i % width;
+    int y = ((i - x) / width) + 1;
+
+    // loop through pixels x and y
+    //for(int x = 1; x < width; x++) {
+    //    for(int y = 1; y < height; y++) {
+
+    // initialize Gx and Gy intensities to 0 for every pixel
+    Gx = 0;
+    Gy = 0;
+    int RGB;
+/*
+    // loop through the filter matrices
+    for(int col = 0; col < 3; col++) {
+        for(int row = 0; row < 3; row++) {
+
+            // make index correction for pixels surrounding x and y
+            // img.atXY(x + i - 1 , y + j - 1)
+            if (x > 0 && y > 0  && x < height)
+                RGB = imageRGB[(x + col - 1) + (width * (y + row - 1))];
+
+
+            // summation of Gx and Gy intensities
+            Gx += Gx_matrix[col][row] * RGB;
+            Gy += Gy_matrix[col][row] * RGB;
+        }
+    }
+    // absolute value of intensities
+    length = abs(Gx) + abs(Gy);
+
+    // normalize the gradient with threshold value (DEFAULT: 2048)
+    normalized_pixel = length * 255 / threshold;
+*/
+    // set pixel value
+    if(i < (width * height))
+        output[x + (width * y)] = imageRGB[x + (width * y)];
+
 }
 
 /**
@@ -97,7 +139,7 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
 
     // call g-code generator here
     // needs to be linked in makefile
-     g_gen(image_vector, width, height, output_name);
+     //g_gen(image_vector, width, height, output_name);
 
     // display the image when the filter has been applied
     if(flags & 0x2) {
@@ -158,8 +200,8 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     // Copy array to device memory
     cudaMemcpy(inputIMG_array, img_array, image_array_size, cudaMemcpyHostToDevice);
 
-    // Launch kernel (UNSURE OF GRID OR BLOCK SIZE)
-    sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height);
+    // Launch kernel (UNSURE OF BLOCKS PER GRID vs THREADS PER BLOCK)
+    sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, Gx_matrix, Gy_matrix, threshold);
 
     // Start allocating memory for new device variables
     int *sobelImageOutput;
@@ -255,15 +297,18 @@ int display_img(vector<int> img, int width, int height, int write_flag, string o
             new_img.atXY(x,y,0) = img[x + (y * width)];
             new_img.atXY(x,y,1) = img[x + (y * width)];
             new_img.atXY(x,y,2) = img[x + (y * width)];
+            if(new_img.atXY(x,y) >= 50) {
+                printf("new_img.atXY[%d][%d] = %d\n", x, y, new_img.atXY(x,y));
+            }
         }
     }
-/*
+
     // Display the image
-    CImgDisplay main_disp(new_img,"Image");
+    /*CImgDisplay main_disp(new_img,"Image");
     while (!main_disp.is_closed()) {
         main_disp.wait();
-    }
-*/
+    }*/
+
     // if write_flag exists, then save the image
     if(write_flag) {
         output.append(".bmp");
