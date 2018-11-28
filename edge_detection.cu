@@ -39,44 +39,39 @@ void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int Gx
     int length;
     int normalized_pixel;
 
-    //calculate thread locations (threadIDx)
+    //calculate thread locations (i)
     int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int x = i % width;
-    int y = ((i - x) / width) + 1;
-
-    // loop through pixels x and y
-    //for(int x = 1; x < width; x++) {
-    //    for(int y = 1; y < height; y++) {
+    int x = i % width;  // x is where in the matrix x direction.
+    int y = (i / width); // y is where in the matrix in the y direction.
 
     // initialize Gx and Gy intensities to 0 for every pixel
     Gx = 0;
     Gy = 0;
     int RGB;
-/*
-    // loop through the filter matrices
-    for(int col = 0; col < 3; col++) {
-        for(int row = 0; row < 3; row++) {
+    if (i < (width * height) ) {
+        // loop through the filter matrices
+        for(int col = 0; col < 3; col++) {
+            for(int row = 0; row < 3; row++) {
 
-            // make index correction for pixels surrounding x and y
-            // img.atXY(x + i - 1 , y + j - 1)
-            if (x > 0 && y > 0  && x < height)
-                RGB = imageRGB[(x + col - 1) + (width * (y + row - 1))];
+                // make index correction for pixels surrounding x and y
+                // img.atXY(x + i - 1 , y + j - 1)
+                if (x > 0 && y > 0  && x < height && y < width)
+                    RGB = imageRGB[(x + col - 1) + (width * (y + row - 1))];
 
-
-            // summation of Gx and Gy intensities
-            Gx += Gx_matrix[col][row] * RGB;
-            Gy += Gy_matrix[col][row] * RGB;
+                // summation of Gx and Gy intensities
+                Gx += Gx_matrix[col][row] * RGB;
+                Gy += Gy_matrix[col][row] * RGB;
+            }
         }
-    }
-    // absolute value of intensities
-    length = abs(Gx) + abs(Gy);
+        // absolute value of intensities
+        length = abs(Gx) + abs(Gy);
 
-    // normalize the gradient with threshold value (DEFAULT: 2048)
-    normalized_pixel = length * 255 / threshold;
-*/
-    // set pixel value
-    if(i < (width * height))
-        output[x + (width * y)] = imageRGB[x + (width * y)];
+        // normalize the gradient with threshold value (DEFAULT: 2048)
+        normalized_pixel = length * 255 / threshold;
+
+        // set pixel value
+        output[x + (width * y)] = normalized_pixel;
+    }
 
 }
 
@@ -139,7 +134,7 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
 
     // call g-code generator here
     // needs to be linked in makefile
-     //g_gen(image_vector, width, height, output_name);
+    // g_gen(image_vector, width, height, output_name);
 
     // display the image when the filter has been applied
     if(flags & 0x2) {
