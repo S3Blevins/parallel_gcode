@@ -135,8 +135,8 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
      //g_gen(image_vector, width, height, output_name);
 
     // display the image when the filter has been applied
-    if(flags & 0x2) {
-        display_img(image_vector, width, height, (flags & 0x10), output_name);
+    if(flags & 0x2 || flags & 0x10) {
+        display_img(image_vector, width, height, (flags), output_name);
     }
 
 }
@@ -297,7 +297,7 @@ vector<int> edge_detection_cpu(vector<int> img, int width, int height, int thres
  * @param  output     output name
  * @return            0
  */
-int display_img(vector<int> img, int width, int height, int write_flag, string output) {
+int display_img(vector<int> img, int width, int height, int flags, string output) {
 
     CImg<unsigned char> new_img;
     new_img.assign(width, height, 1, 3);
@@ -315,13 +315,15 @@ int display_img(vector<int> img, int width, int height, int write_flag, string o
     }
 
     // Display the image
-    CImgDisplay main_disp(new_img,"Image");
-    while (!main_disp.is_closed()) {
-        main_disp.wait();
+    if (flags & 0x2) {
+        CImgDisplay main_disp(new_img,"Image");
+        while (!main_disp.is_closed()) {
+            main_disp.wait();
+        }
     }
 
     // if write_flag exists, then save the image
-    if(write_flag) {
+    if(flags & 0x10) {
         output.append(".bmp");
         new_img.save(output.c_str());
     }
