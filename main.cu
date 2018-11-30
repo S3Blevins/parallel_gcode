@@ -39,13 +39,14 @@ int main(int argc, char *argv[]) {
     // default flags written
     int default_proc_flag = 0;
     int default_out_flag = 0;
+    int filter;
 
     // string allocations for input and output names
     string input_name = argv[1];
     string output_name = input_name;
 
     int c;              // switch case variable
-    while((c = getopt(argc, argv, "icgdo:vwt:h")) != -1) {
+    while((c = getopt(argc, argv, "icgdo:f:vwt:h")) != -1) {
         switch(c) {
             case 'i':   // run with metadata output
                 flags |= 0x8;
@@ -62,6 +63,9 @@ int main(int argc, char *argv[]) {
             case 'o':   // change gcode output name
                 output_name = optarg;
                 default_out_flag = 1;
+                break;
+            case 'f':
+                filter = atoi(optarg); //change the filter choise to an int
                 break;
             case 'v':   // enable verbose mode [FOR DEBUGGING]
                 flags |= 0x4;
@@ -99,7 +103,7 @@ int main(int argc, char *argv[]) {
     }
 
     // call the wrapper function which compiles according to the flags
-    edge_detection_wrapper(flags, input_name, output_name, threshold);
+    edge_detection_wrapper(flags, input_name, output_name, threshold, filter);
 
     return 0;
 }

@@ -92,9 +92,8 @@ void error_check(cudaError_t err) {
  * @param output_name output name for gcode output
  * @param threshold   threshold used for normalizing the sobel filter
  */
-void edge_detection_wrapper(char flags, string input_name, string output_name, int threshold) {
+void edge_detection_wrapper(char flags, string input_name, string output_name, int threshold, int filter) {
     cimg::exception_mode(0); // silence library exceptions so we can use our own
-
     CImg<unsigned int> img;
 
     // dimensions to be set by set when cast by reference below
@@ -122,12 +121,12 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
         //printf("GPU Processed\n");
 
         // overwrite the image vector with sobel filter
-        image_vector = edge_detection_gpu(image_vector, width, height, threshold);
+        image_vector = edge_detection_gpu(image_vector, width, height, threshold, filter);
     } else {
         //printf("CPU Processed\n");
 
         // overwrite the image vector with sobel filter
-        image_vector = edge_detection_cpu(image_vector, width, height, threshold);
+        image_vector = edge_detection_cpu(image_vector, width, height, threshold, filter);
     }
 
     // call g-code generator here
@@ -165,7 +164,7 @@ vector<int> vectorize_img(CImg<unsigned char> img, int *width, int *height) {
     return image_vector;
 }
 
-vector<int> edge_detection_gpu(vector<int> img, int width, int height, int threshold) {
+vector<int> edge_detection_gpu(vector<int> img, int width, int height, int threshold, int filter) {
 
     int image_size = width * height;
     int image_array_size = image_size * sizeof(int);
@@ -242,7 +241,7 @@ cudaDeviceSynchronize();
  * @param  threshold threshold for normalization for filter
  * @return           vectorized image with filter applied
  */
-vector<int> edge_detection_cpu(vector<int> img, int width, int height, int threshold) {
+vector<int> edge_detection_cpu(vector<int> img, int width, int height, int threshold, int filter) {
 
     int Gx;
     int Gy;
