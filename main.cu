@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
  */
 void helper(void) {
     printf("\nCOMMAND USAGE FOR TOOL:\n\n");
-    printf("\t./generator FILE [-i] [-c] [-g] [-d] [-o OUTPUT] [-v] [-w]\n\n");
+    printf("\t./generator FILE [-i] [-c] [-g] [-d] [-o OUTPUT] [-v] [-w] [-f NUMBER]\n\n");
 
     printf("\tFILE (REQUIRED)\n");
     printf("\tThe FILE is the name of the input file.\n\n");
@@ -149,4 +149,13 @@ void helper(void) {
     printf("\t[-h]\n");
     printf("\tThe helper function that is used to explain flags and the functionality\n");
     printf("\tof the program.\n\n");
+
+    printf("\t[-f]\n");
+    printf("\tThe filter flag is to specify which filter the user wants to run.\n");
+    printf("\tThe following filters are supported and denoated by: \n\n");
+    printf("\tSobel Edge detector: 1\n");
+    printf("\tRobert's Edge detector: 2\n");
+    printf("\tPrewitt Edge dector: 3\n");
+    printf("\tFrie Chen Edge detector: 4\n");
+    printf("\tExample: ./generator -g -w -f 1 \n");
 }

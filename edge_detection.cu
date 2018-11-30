@@ -137,7 +137,6 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
     if(flags & 0x2 || flags & 0x10) {
         display_img(image_vector, width, height, (flags), output_name);
     }
-
 }
 
 /**
@@ -165,22 +164,30 @@ vector<int> vectorize_img(CImg<unsigned char> img, int *width, int *height) {
 }
 
 vector<int> edge_detection_gpu(vector<int> img, int width, int height, int threshold, int filter) {
-
-    int image_size = width * height;
-    int image_array_size = image_size * sizeof(int);
-
-    int matrix_array_size = 9 * sizeof(int);
-
-    // NOTE: we can convert a vector into an integer array needed
-    // for the kernel by int* img_array = &img[0]
-    // which makes a pointer from the first index which is then
-    // continuously allocated.
-
     // convert vector into standard image array
     int* img_array = &img[0];
+    int image_size, image_array_size, matrix_array_size;
 
     // Device IMG_array, device Sobel Filter x, device Sobel Filter y
-    int *inputIMG_array, *outputIMG_array, *sobelx, *sobely;
+    int *inputIMG_array, *outputIMG_array, *filterx, *filtery;
+
+    if (filter == 1) {
+        image_size = width * height;
+        image_array_size = image_size * sizeof(int);
+        matrix_array_size = 9 * sizeof(int);
+    } else if (filter == 2) {
+        printf("Launching Robert's Edge Detector\n");
+        exit(0);
+    } else if (filter == 3) {
+        printf("Launching Prewitt Edge Detector\n");
+        exit(0);
+    } else if (filter == 4 ) {
+        printf("Launching Frie Chen Edge Detector\n");
+        exit(0);
+    } else {
+        printf("Not a valid filter choice. Please try again.\n");
+        exit(1);
+    }
 
     // allocating memory for device variables
     //--------------------------------------------------------------------------
@@ -190,10 +197,10 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     err = cudaMalloc((void **) &inputIMG_array, image_array_size);
     error_check(err);
 
-    err = cudaMalloc((void **) &sobelx, matrix_array_size);
+    err = cudaMalloc((void **) &filterx, matrix_array_size);
     error_check(err);
 
-    err = cudaMalloc((void **) &sobely, matrix_array_size);
+    err = cudaMalloc((void **) &filtery, matrix_array_size);
     error_check(err);
     //--------------------------------------------------------------------------
 
@@ -201,36 +208,43 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     cudaMemcpy(inputIMG_array, img_array, image_array_size, cudaMemcpyHostToDevice);
 
     // Copy array to device memory
-    cudaMemcpy(sobelx, Gx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(filterx, Gx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
 
     // Copy array to device memory
-    cudaMemcpy(sobely, Gy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(filtery, Gy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
 
-    // Launch kernel (UNSURE OF BLOCKS PER GRID vs THREADS PER BLOCK)
-    sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, sobelx, sobely, threshold);
-
-cudaDeviceSynchronize();
+    if (filter == 1) {
+        // Launch kernel (UNSURE OF BLOCKS PER GRID vs THREADS PER BLOCK)
+        printf("Launching Sobel Edge Detector\n");
+        sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, filterx, filtery, threshold);
+    } else if (filter == 2) {
+        printf("Launching Robert's Edge Detector\n");
+    } else if (filter == 3) {
+        printf("Launching Prewitt Edge Detector\n");
+    } else {
+        printf("Launching Frie Chen Edge Detector\n");
+    }
+    cudaDeviceSynchronize();
 
     // Start allocating memory for new device variables
-    int *sobelImageOutput;
-//262144
+    int *filterImageOutput;
+    //262144
 
-    // sobelPictureOutput is the RGB values of the image normalized to sobelFilter
-    sobelImageOutput = (int *) malloc(image_array_size);
-    if (sobelImageOutput == NULL) {
+    // filterPictureOutput is the RGB values of the image normalized to Filter
+    filterImageOutput = (int *) malloc(image_array_size);
+    if (filterImageOutput == NULL) {
         printf("Could not allocate memory for sobelPictureOutput: failed\n");
         exit(1);
     }
 
 
     // Success - This point should have the picture in an output array
-    cudaMemcpy(sobelImageOutput, outputIMG_array, image_array_size, cudaMemcpyDeviceToHost);
-
+    cudaMemcpy(filterImageOutput, outputIMG_array, image_array_size, cudaMemcpyDeviceToHost);
 
     // Here we have sobelPictureOutput that we need to print and show the results
 
     // I think this is how we convert an array into a vector?
-    vector<int> out(sobelImageOutput, sobelImageOutput + image_size);
+    vector<int> out(filterImageOutput, filterImageOutput + image_size);
     return out;
 }
 
