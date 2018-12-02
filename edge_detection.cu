@@ -6,21 +6,28 @@
 using namespace cimg_library;
 using namespace std;
 
+//-------------------------FILTERS FOR DETECTORS--------------------------------
+//                      (PREDEFINED AT COMPILE TIME)
+//-------------------------Sobel Edge Detector----------------------------------
 // sobelFilter x matrix
-// (PREDEFINED AT COMPILE TIME)
-int Gx_matrix[9] = {1, 0, -1, 2, 0, -2, 1, 0, -1};
+int Gx_matrix[9] = {1, 0, -1,
+                    2, 0, -2,
+                    1, 0, -1};
 
 // sobelFilter y matrix
-// (PREDEFINED AT COMPILE TIME)
-int Gy_matrix[9] = {1, 2, 1, 0, 0, 0, -1, -2, -1};
+int Gy_matrix[9] = {1, 2, 1,
+                    0, 0, 0,
+                   -1, -2, -1};
 
-/*
-Thread block size should always be a multiple of 32. This is to maximize
-efficientcy of utilizing all threads. Example:
+//------------------------Roberts Cross Edge Detector---------------------------
+int RGx_matrix[4] = {1, 0,
+                     0, -1};
+int RGy_matrix[4] = {0, 1,
+                    -1, 0};
 
-If Block size = 50, then we need (32 threads per block) = (2 * 32 to cover 50) = 64
-                    This means we are wasting 14 threads.
-*/
+//------------------------------------------------------------------------------
+
+
 __global__
 void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *Gx_array, int *Gy_array, int threshold) {
     int Gx, Gy;
@@ -52,6 +59,58 @@ void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *G
             // summation of Gx and Gy intensities
             Gx += Gx_array[filter_pos] * RGB;
             Gy += Gy_array[filter_pos] * RGB;
+        }
+
+        // absolute value
+        if(Gx < 0) {
+            Gx *= -1;
+        }
+        if(Gy < 0) {
+            Gy *= -1;
+        }
+
+        // absolute value of intensities
+        length = Gx + Gy;
+
+        // normalize the gradient with threshold value (DEFAULT: 2048)
+        normalized_pixel = length * 255 / threshold;
+        __syncthreads();
+        output[x + (width * y)] = normalized_pixel;
+    }
+     __syncthreads();
+}
+
+__global__
+void robertFilterKernel(int *imageRGB, int *output, int width, int height, int *RGx_array, int *RGy_array, int threshold) {
+    int Gx, Gy;
+    int length;
+    int normalized_pixel;
+
+    //calculate thread locations (threadIDx)
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int x = i % width;
+    int y = i / width;
+
+    // loop through pixels x and y
+    //for(int x = 1; x < width; x++) {
+    //    for(int y = 1; y < height; y++) {
+
+    // initialize Gx and Gy intensities to 0 for every pixel
+    Gx = 0;
+    Gy = 0;
+    int RGB;
+
+    if((i < (width * height)) && (x > 0) && (y > 0)  && (x < width - 1) && (y < height - 1)) {
+
+        for(int filter_pos = 0; filter_pos < 4; filter_pos++) {
+            int col = filter_pos % 2;
+            int row = filter_pos / 2;
+
+            RGB = imageRGB[(x + col - 1) + (width * (y + row - 1))];
+
+            // summation of Gx and Gy intensities
+            Gx += RGx_array[filter_pos] * RGB;
+            Gy += RGy_array[filter_pos] * RGB;
         }
 
         // absolute value
@@ -125,7 +184,7 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
     } else {
         //printf("CPU Processed\n");
 
-        // overwrite the image vector with sobel filter
+        // overwrite the image vector with filter choice
         image_vector = edge_detection_cpu(image_vector, width, height, threshold, filter);
     }
 
@@ -176,8 +235,9 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
         image_array_size = image_size * sizeof(int);
         matrix_array_size = 9 * sizeof(int);
     } else if (filter == 2) {
-        printf("Launching Robert's Edge Detector\n");
-        exit(0);
+        image_size = width * height;
+        image_array_size = image_size * sizeof(int);
+        matrix_array_size = 4 * sizeof(int);
     } else if (filter == 3) {
         printf("Launching Prewitt Edge Detector\n");
         exit(0);
@@ -207,18 +267,21 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     // Copy array to device memory
     cudaMemcpy(inputIMG_array, img_array, image_array_size, cudaMemcpyHostToDevice);
 
-    // Copy array to device memory
-    cudaMemcpy(filterx, Gx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
-
-    // Copy array to device memory
-    cudaMemcpy(filtery, Gy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
-
     if (filter == 1) {
+        // Copy array to device memory
+        cudaMemcpy(filterx, Gx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
+        // Copy array to device memory
+        cudaMemcpy(filtery, Gy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
         // Launch kernel (UNSURE OF BLOCKS PER GRID vs THREADS PER BLOCK)
         printf("Launching Sobel Edge Detector\n");
         sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, filterx, filtery, threshold);
     } else if (filter == 2) {
+        // Copy array to device memory
+        cudaMemcpy(filterx, RGx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
+        // Copy array to device memory
+        cudaMemcpy(filtery, RGy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
         printf("Launching Robert's Edge Detector\n");
+        robertFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, filterx, filtery, threshold);
     } else if (filter == 3) {
         printf("Launching Prewitt Edge Detector\n");
     } else {
