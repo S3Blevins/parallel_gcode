@@ -40,13 +40,14 @@ int main(int argc, char *argv[]) {
     int default_proc_flag = 0;
     int default_out_flag = 0;
     int filter;
+    int test_count = 1;
 
     // string allocations for input and output names
     string input_name = argv[1];
     string output_name = input_name;
 
     int c;              // switch case variable
-    while((c = getopt(argc, argv, "icgdo:f:vwt:h")) != -1) {
+    while((c = getopt(argc, argv, "icgdo:f:r:vwt:h")) != -1) {
         switch(c) {
             case 'i':   // run with metadata output
                 flags |= 0x8;
@@ -72,6 +73,10 @@ int main(int argc, char *argv[]) {
                 break;
             case 'w':   // enables writing of edge detection filter to a file
                 flags |= 0x10;
+                break;
+            case 'r':
+                //initialized by default to 1
+                test_count = atoi(optarg); // How many times to run a certain filter.
                 break;
             case 't':   // filter threshold (HIDDEN FLAG -> DEFAULT is 2048)
                 try {
@@ -103,7 +108,10 @@ int main(int argc, char *argv[]) {
     }
 
     // call the wrapper function which compiles according to the flags
-    edge_detection_wrapper(flags, input_name, output_name, threshold, filter);
+    for (int t = 0; t < test_count; t++) {
+        printf("t: %d\n", t + 1);
+        edge_detection_wrapper(flags, input_name, output_name, threshold, filter);
+    }
 
     return 0;
 }
