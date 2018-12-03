@@ -186,7 +186,7 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
 
     // call g-code generator here
     // needs to be linked in makefile
-     //g_gen(image_vector, width, height, output_name);
+    g_gen(image_vector, width, height, output_name);
 
     // display the image when the filter has been applied
     if(flags & 0x2 || flags & 0x10) {
