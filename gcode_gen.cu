@@ -89,10 +89,55 @@ void next_to(int **image_2d, int **image_visited, int x, int y, float size_h, fl
             if(image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
                 image_visited[new_x][new_y] = 1;
                 //printf("pixel[%d][%d] = %d\n", new_x, new_y, image_2d[new_x][new_y]);
-                outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t\t;move pencil down" << endl;
+                outputFile << "G0" << " F10000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t\t;move pencil down" << endl;
                 next_to(image_2d, image_visited, new_x, new_y, size_h, size_w);
             }
         }
+    }
+}
+
+void next(int **image_2d, int **image_visited, int x, int y, float size_h, float size_w) {
+    double pos_x;
+    double pos_y;
+    int new_x = x;
+    int new_y = y;
+    vector<int> saved_x;            // saved indices to simulate
+    vector<int> saved_y;            // recursion
+
+    // insert the first indices in the stack
+    saved_x.push_back(new_x);
+    saved_y.push_back(new_y);
+    cout << "new_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
+
+    // keep checking the surrounding elements as long as
+    // the stack is not empty
+    while(!saved_x.empty() && !saved_y.empty()){
+
+        for(int col = 0; col < 3; col++) {
+            for(int row = 0; row < 3; row++){
+                new_x = new_x + col - 1;
+                new_y = new_y + row - 1;
+                pos_x = new_x * size_w;
+                pos_y = new_y * size_h;
+
+                if (image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
+                    image_visited[new_x][new_y] = 1;
+                    saved_x.push_back(new_x);
+                    saved_y.push_back(new_y);
+                    cout << "push\tnew_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
+
+                    col = 0;
+                    row = 0;
+                    outputFile << "G0" << " F10000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t\t;move pencil down" << endl;
+                    break;
+                }
+            }
+        }
+        saved_x.pop_back();
+        saved_y.pop_back();
+        new_x = saved_x.back();
+        new_y = saved_y.back();
+        cout << "pop\tnew_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
     }
 }
 
@@ -142,9 +187,8 @@ int gcode(vector<int> image, int width, int height) {
                 // recursive call once a grey/white pixel has been found
                 // and follow up with any pixels which are grey/white
                 // immediately next to that
-                next_to(image_2d, image_visited, x, y, size_h, size_w);
-
-                outputFile << "G0 F8000 Z5.0\t\t\t;move pencil up" << endl;
+                next(image_2d, image_visited, x, y, size_h, size_w);
+                outputFile << "G0 F10000 Z3.0\t\t\t;move pencil up" << endl;
              }
          }
      }
