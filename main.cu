@@ -39,13 +39,15 @@ int main(int argc, char *argv[]) {
     // default flags written
     int default_proc_flag = 0;
     int default_out_flag = 0;
+    int filter;
+    int test_count = 1;
 
     // string allocations for input and output names
     string input_name = argv[1];
     string output_name = input_name;
 
     int c;              // switch case variable
-    while((c = getopt(argc, argv, "icgdo:vwt:h")) != -1) {
+    while((c = getopt(argc, argv, "icgdo:f:r:vwt:h")) != -1) {
         switch(c) {
             case 'i':   // run with metadata output
                 flags |= 0x8;
@@ -63,11 +65,18 @@ int main(int argc, char *argv[]) {
                 output_name = optarg;
                 default_out_flag = 1;
                 break;
+            case 'f':
+                filter = atoi(optarg); //change the filter choise to an int
+                break;
             case 'v':   // enable verbose mode [FOR DEBUGGING]
                 flags |= 0x4;
                 break;
             case 'w':   // enables writing of edge detection filter to a file
                 flags |= 0x10;
+                break;
+            case 'r':
+                //initialized by default to 1
+                test_count = atoi(optarg); // How many times to run a certain filter.
                 break;
             case 't':   // filter threshold (HIDDEN FLAG -> DEFAULT is 2048)
                 try {
@@ -99,7 +108,10 @@ int main(int argc, char *argv[]) {
     }
 
     // call the wrapper function which compiles according to the flags
-    edge_detection_wrapper(flags, input_name, output_name, threshold);
+    for (int t = 0; t < test_count; t++) {
+        printf("t: %d\n", t + 1);
+        edge_detection_wrapper(flags, input_name, output_name, threshold, filter);
+    }
 
     return 0;
 }
@@ -109,7 +121,7 @@ int main(int argc, char *argv[]) {
  */
 void helper(void) {
     printf("\nCOMMAND USAGE FOR TOOL:\n\n");
-    printf("\t./generator FILE [-i] [-c] [-g] [-d] [-o OUTPUT] [-v] [-w]\n\n");
+    printf("\t./generator FILE [-i] [-c] [-g] [-d] [-o OUTPUT] [-v] [-w] [-f NUMBER]\n\n");
 
     printf("\tFILE (REQUIRED)\n");
     printf("\tThe FILE is the name of the input file.\n\n");
@@ -145,4 +157,13 @@ void helper(void) {
     printf("\t[-h]\n");
     printf("\tThe helper function that is used to explain flags and the functionality\n");
     printf("\tof the program.\n\n");
+
+    printf("\t[-f]\n");
+    printf("\tThe filter flag is to specify which filter the user wants to run.\n");
+    printf("\tThe following filters are supported and denoated by: \n\n");
+    printf("\tSobel Edge detector: 1\n");
+    printf("\tRobert's Edge detector: 2\n");
+    printf("\tPrewitt Edge dector: 3\n");
+    printf("\tFrie Chen Edge detector: 4\n");
+    printf("\tExample: ./generator -g -w -f 1 \n");
 }

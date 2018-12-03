@@ -45,7 +45,7 @@ void gcode_prolog(void) {
 /**
  * Ending lines to print onto gcode file
  */
-void gcode_epilog(void) {
+void gcode_epilog(double size_h, double size_w) {
     // actual gcode goes below;
     // G0 {speed} X{position} Y{position}
 
@@ -57,7 +57,8 @@ void gcode_epilog(void) {
     outputFile << "G28 X0 Y0      ;move X/Y to min endstops, so the head is out of the way" << endl;
     outputFile << "M84            ;steppers off" << endl;
     outputFile << "G90            ;absolute positioning" << endl;
-
+    outputFile << ";pixel height: " << size_h << endl;
+    outputFile << ";pixel width: " << size_w << endl;
 }
 
 /**
@@ -67,10 +68,12 @@ void gcode_epilog(void) {
  * @param x             x position of pixel to check adjacents
  * @param y             y position of pixel to check adjacents
  */
-void next_to(int **image_2d, int **image_visited, int x, int y) {
+void next_to(int **image_2d, int **image_visited, int x, int y, float size_h, float size_w) {
 
     int new_x;
     int new_y;
+    double pos_x;
+    double pos_y;
 
     //printf("original pixel\n");
     //printf("pixel[%d][%d] = %d\n", x, y, image_2d[x][y]);
@@ -81,13 +84,15 @@ void next_to(int **image_2d, int **image_visited, int x, int y) {
         for(int row = 0; row < 3; row++) {
             new_x = x + col - 1;
             new_y = y + row - 1;
+            pos_x = new_x * size_w;
+            pos_y = new_y * size_h;
 
             //printf("checking pixel[%d][%d] = %d\n", new_x, new_y, image_visited[new_x][new_y]);
             if(image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
                 image_visited[new_x][new_y] = 1;
                 printf("pixel[%d][%d] = %d\n", new_x, new_y, image_2d[new_x][new_y]);
-                outputFile << "G0" << " F1200" << " X" << new_x << " Y" << new_y << endl;
-                next_to(image_2d, image_visited, new_x, new_y);
+                outputFile << "G0" << " F1200" << " X" << pos_x << " Y" << pos_y << endl;
+                next_to(image_2d, image_visited, new_x, new_y, size_h, size_w);
             }
         }
     }
@@ -106,6 +111,11 @@ int gcode(vector<int> image, int width, int height) {
     image_2d = new int *[width];
     int **image_visited;
     image_visited = new int *[width];
+    double size_w = (double)190/width;
+    double size_h = (double)190/height;
+
+    cout << "width: " << size_w << endl;
+    cout << "height: " << size_h << endl;
 
     gcode_prolog();
 
@@ -133,16 +143,19 @@ int gcode(vector<int> image, int width, int height) {
              // if the image is grey/white and has not been visited
              if(image_2d[x][y] >= 50 && image_visited[x][y] == 0) {
                 //printf("pixel[%d][%d] = %d\n", x, y, image_2d[x][y]);
+                outputFile << "G0 F1200 Z0.03\t\t\t;move pencil down" << endl;
 
                 // recursive call once a grey/white pixel has been found
                 // and follow up with any pixels which are grey/white
                 // immediately next to that
-                next_to(image_2d, image_visited, x, y);
+                next_to(image_2d, image_visited, x, y, size_h, size_w);
+
+                outputFile << "G0 F1200 Z15.0\t\t\t;move pencil up" << endl;
              }
          }
      }
 
-     gcode_epilog();
+     gcode_epilog(size_h, size_w);
 
     return 0;
 }
@@ -165,5 +178,8 @@ void g_gen(vector<int> img, int width, int height, string output_name) {
 
     // call the function
     gcode(img, width, height);
+
+    // close file
+    //outputFile.close(output_name);
 
 }
