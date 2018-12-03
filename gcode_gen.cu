@@ -65,8 +65,10 @@ void gcode_epilog() {
  * @param image_visited pixel visitation flags for each pixel in 2d format
  * @param x             x position of pixel to check adjacents
  * @param y             y position of pixel to check adjacents
+ * @param height        the pixel height of the image
+ * @param width         the pixel width of the image
  */
-void next_to(int **image_2d, int **image_visited, int x, int y, float size_h, float size_w) {
+void next_to(int **image_2d, int **image_visited, int x, int y, int height, int width) {
 
     int new_x;
     int new_y;
@@ -82,32 +84,50 @@ void next_to(int **image_2d, int **image_visited, int x, int y, float size_h, fl
         for(int row = 0; row < 3; row++) {
             new_x = x + col - 1;
             new_y = y + row - 1;
-            pos_x = new_x * size_w;
-            pos_y = new_y * size_h;
+
+            if (new_x >= width || new_y >= height) {
+                cout << "going out of bounds\theigth: " << height << "\twidth: " << width << endl;
+                continue;
+            }
+
+            pos_x = new_x * ((double)180/width);
+            pos_y = new_y * ((double)180/height);
 
             //printf("checking pixel[%d][%d] = %d\n", new_x, new_y, image_visited[new_x][new_y]);
             if(image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
                 image_visited[new_x][new_y] = 1;
                 //printf("pixel[%d][%d] = %d\n", new_x, new_y, image_2d[new_x][new_y]);
                 outputFile << "G0" << " F10000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t\t;move pencil down" << endl;
-                next_to(image_2d, image_visited, new_x, new_y, size_h, size_w);
+                next_to(image_2d, image_visited, new_x, new_y, height, width);
             }
         }
     }
 }
 
-void next(int **image_2d, int **image_visited, int x, int y, float size_h, float size_w) {
+/**
+ * non-recursively checks pixels adjacent to the main pixel located at x
+ * and y
+ * @param image_2d      image in 2d array of format
+ * @param image_visited pixel visitation flags for each pixel in 2d format
+ * @param x             x position of pixel to check adjacents
+ * @param y             y position of pixel to check adjacents
+ * @param height        the pixel height of the image
+ * @param width         the pixel width of the image
+ */
+void next(int **image_2d, int **image_visited, int x, int y, int height, int width) {
     double pos_x;
     double pos_y;
+    int old_x = x;
+    int old_y = y;
     int new_x = x;
     int new_y = y;
     vector<int> saved_x;            // saved indices to simulate
     vector<int> saved_y;            // recursion
 
     // insert the first indices in the stack
-    saved_x.push_back(new_x);
-    saved_y.push_back(new_y);
-    cout << "new_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
+    saved_x.push_back(old_x);
+    saved_y.push_back(old_y);
+    cout << "old_x: "<< new_x <<"\told_y: "<< new_y << endl;
 
     // keep checking the surrounding elements as long as
     // the stack is not empty
@@ -115,10 +135,16 @@ void next(int **image_2d, int **image_visited, int x, int y, float size_h, float
 
         for(int col = 0; col < 3; col++) {
             for(int row = 0; row < 3; row++){
-                new_x = new_x + col - 1;
-                new_y = new_y + row - 1;
-                pos_x = new_x * size_w;
-                pos_y = new_y * size_h;
+                new_x = old_x + col - 1;
+                new_y = old_y + row - 1;
+
+                if (new_x >= width || new_y >= height) {
+                    cout << "going out of bounds\theigth: " << height << "\twidth: " << width << endl;
+                    continue;
+                }
+
+                pos_x = new_x * ((double)180/width);
+                pos_y = new_y * ((double)180/height);
 
                 if (image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
                     image_visited[new_x][new_y] = 1;
@@ -135,8 +161,8 @@ void next(int **image_2d, int **image_visited, int x, int y, float size_h, float
         }
         saved_x.pop_back();
         saved_y.pop_back();
-        new_x = saved_x.back();
-        new_y = saved_y.back();
+        old_x = saved_x.back();
+        old_y = saved_y.back();
         cout << "pop\tnew_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
     }
 }
@@ -154,8 +180,6 @@ int gcode(vector<int> image, int width, int height) {
     image_2d = new int *[width];
     int **image_visited;
     image_visited = new int *[width];
-    double size_w = (double)190/width;
-    double size_h = (double)190/height;
 
     gcode_prolog();
 
@@ -187,7 +211,7 @@ int gcode(vector<int> image, int width, int height) {
                 // recursive call once a grey/white pixel has been found
                 // and follow up with any pixels which are grey/white
                 // immediately next to that
-                next(image_2d, image_visited, x, y, size_h, size_w);
+                next(image_2d, image_visited, x, y, height, width);
                 outputFile << "G0 F10000 Z3.0\t\t\t;move pencil up" << endl;
              }
          }
@@ -216,6 +240,8 @@ void g_gen(vector<int> img, int width, int height, string output_name) {
 
     // call the function
     gcode(img, width, height);
+
+    cout << "heigth: " << height << "\twidth: " << width << endl;
 
     // close file
     //outputFile.close(output_name);
