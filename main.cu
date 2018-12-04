@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
     int threshold = 2048;
 
     // default flags written
-    int default_proc_flag = 0;
     int default_out_flag = 0;
     int filter = 1;
     int test_count = 1;
@@ -51,9 +50,6 @@ int main(int argc, char *argv[]) {
         switch(c) {
             case 'i':   // run with metadata output
                 flags |= 0x8;
-                break;
-            case 'c':   // run edge_detection on cpu (CANNOT BE RUN WITH '-g' FLAG)
-                default_proc_flag = 1;
                 break;
             case 'g':   // run edge_detection on GPU (CANNOT BE RUN WITH '-c' FLAG)
                 flags |= 0x1;
@@ -163,6 +159,6 @@ void helper(void) {
     printf("\tSobel Edge detector: 1\n");
     printf("\tRobert's Edge detector: 2\n");
     printf("\tPrewitt Edge dector: 3\n");
-    printf("\tFrie Chen Edge detector: 4\n");
-    printf("\tExample: ./generator -g -w -f 1 \n");
+    
+    printf("\tExample: ./generator -g -w -f 1 -t 1024 \n");
 }
