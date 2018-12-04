@@ -6,6 +6,8 @@
 
 using namespace std;
 
+#define MAX(((a)>(b))?(a):(b))
+
 // NOTE: everything above 50 is considered a white line
 ofstream outputFile;
 
@@ -74,6 +76,7 @@ void next_to(int **image_2d, int **image_visited, int x, int y, int height, int 
     int new_y;
     double pos_x;
     double pos_y;
+    double size = (double)(180/MAX(width,height));
 
     //printf("original pixel\n");
     //printf("pixel[%d][%d] = %d\n", x, y, image_2d[x][y]);
@@ -90,8 +93,8 @@ void next_to(int **image_2d, int **image_visited, int x, int y, int height, int 
                 continue;
             }
 
-            pos_x = new_x * ((double)180/width);
-            pos_y = new_y * ((double)180/height);
+            pos_x = new_x * size;
+            pos_y = new_y * size;
 
             //printf("checking pixel[%d][%d] = %d\n", new_x, new_y, image_visited[new_x][new_y]);
             if(image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
@@ -124,6 +127,8 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
     vector<int> saved_x;            // saved indices to simulate
     vector<int> saved_y;            // recursion
     bool up = false;
+    double size = (double)(180/MAX(width,height));
+
 
     // insert the first indices in the stack
     saved_x.push_back(old_x);
@@ -144,8 +149,8 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
                     continue;
                 }
 
-                pos_x = new_x * ((double)180/width);
-                pos_y = new_y * ((double)180/height);
+                pos_x = new_x * size;
+                pos_y = new_y * size;
 
                 if (image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
                     image_visited[new_x][new_y] = 1;
@@ -193,6 +198,7 @@ int gcode(vector<int> image, int width, int height) {
     image_visited = new int *[width];
     double pos_x, pos_y;
     bool up = true;
+    double size = (double)(180/MAX(width,height));
 
     gcode_prolog();
 
@@ -224,8 +230,8 @@ int gcode(vector<int> image, int width, int height) {
                 // recursive call once a grey/white pixel has been found
                 // and follow up with any pixels which are grey/white
                 // immediately next to that
-                pos_x = x * ((double)180/width);
-                pos_y = y * ((double)180/height);
+                pos_x = x * size;
+                pos_y = y * size;
 
                 outputFile << "G0 F8000 X" << pos_x <<  " Y" << pos_y << endl;
 
