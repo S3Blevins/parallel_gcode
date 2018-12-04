@@ -73,7 +73,7 @@ void next_to(int **image_2d, int **image_visited, int x, int y, int height, int 
     int new_y;
     double pos_x;
     double pos_y;
-    double size = (double)(180/MAX(width,height));
+    double size = ((double)180/MAX(width,height));
 
     //printf("original pixel\n");
     //printf("pixel[%d][%d] = %d\n", x, y, image_2d[x][y]);
@@ -142,7 +142,7 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
     vector<int> saved_x;            // saved indices to simulate
     vector<int> saved_y;            // recursion
     bool up = false;
-    double size = (double)(180/MAX(width,height));
+    double size = ((double)180/MAX(width,height));
 
 
     int last_x = 0;
@@ -234,7 +234,7 @@ int gcode(vector<int> image, int width, int height) {
     image_visited = new int *[width];
     double pos_x, pos_y;
     bool up = true;
-    double size = (double)(180/MAX(width,height));
+    double size = ((double)180/MAX(width,height));
 
     gcode_prolog();
 
@@ -284,7 +284,7 @@ int gcode(vector<int> image, int width, int height) {
              }
          }
      }
-
+     cout << "size: " << size << endl;
      gcode_epilog();
 
     return 0;
