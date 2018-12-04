@@ -31,8 +31,21 @@ __global__
 void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int Gx_matrix[][3], int Gy_matrix[][3], int threshold);
 __global__
 void robertFilterKernel(int *imageRGB, int *output, int width, int height, int Gx_array[][2], int Gy_array[][2], int threshold);
+__global__
+void prewittFilterKernel(int *imageRGB, int *output, int width, int height, int PGx_array[][3], int PGy_array[][3], int threshold);
 
 vector<int> edge_detection_gpu(vector<int> img, int width, int height, int threshold, int filter);
 
 // g-code Generator Functions
+
+void gcode_prolog(void);
+
+void gcode_epilog(void);
+
+void next_to(int **image_2d, int **image_visited, int x, int y, int height, int width);
+
+int surrounding_check(int x, int y, int last_x, int last_y);
+
+bool next(int **image_2d, int **image_visited, int x, int y, int height, int width);
+
 void g_gen(vector<int> img, int width, int height);

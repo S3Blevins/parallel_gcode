@@ -19,16 +19,13 @@ void gcode_prolog(void) {
     // G0 means to not extrude
     // comments are denoted by a semicolon
 
-    outputFile << "M190 S50.000000" << endl;
-    outputFile << "M109 S215.000000" << endl << endl;
-
     outputFile << "G21            ;metric values" << endl;
     outputFile << "G90            ;absolute positioning" << endl;
     outputFile << "M82            ;set extruder to absolute mode" << endl;
     outputFile << "M107           ;start with the fan off" << endl;
     outputFile << "G28 X0 Y0      ;move X/Y to min endstops" << endl;
     outputFile << "G28 Z0         ;move Z to min endstops" << endl;
-    outputFile << "G0 Z15.0 F9000 ;move the platform down 15mm" << endl;
+    outputFile << "G0 Z5.0 F9000  ;move the platform down 15mm" << endl;
     outputFile << "G92 E0         ;zero the extruded length" << endl;
     outputFile << "G1 F9000       ;Put printing message on LCD screen" << endl;
     outputFile << "M117 DRAWING..." << endl << endl;
@@ -89,7 +86,7 @@ void next_to(int **image_2d, int **image_visited, int x, int y, int height, int 
             new_y = y + row - 1;
 
             if (new_x >= width || new_y >= height) {
-                cout << "going out of bounds\theigth: " << height << "\twidth: " << width << endl;
+                cout << "going out of bounds\theight: " << height << "\twidth: " << width << endl;
                 continue;
             }
 
@@ -107,6 +104,22 @@ void next_to(int **image_2d, int **image_visited, int x, int y, int height, int 
     }
 }
 
+int surrounding_check(int x, int y, int last_x, int last_y) {
+    int new_x, new_y;
+
+    for(int col = 0; col < 3; col++) {
+        for(int row = 0; row < 3; row++){
+            new_x = x + col - 1;
+            new_y = y + row - 1;
+
+            if(new_x == last_x || new_y == last_y) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 /**
  * non-recursively checks pixels adjacent to the main pixel located at x
  * and y
@@ -120,8 +133,10 @@ void next_to(int **image_2d, int **image_visited, int x, int y, int height, int 
 bool next(int **image_2d, int **image_visited, int x, int y, int height, int width) {
     double pos_x;
     double pos_y;
+
     int old_x = x;
     int old_y = y;
+
     int new_x = x;
     int new_y = y;
     vector<int> saved_x;            // saved indices to simulate
@@ -129,6 +144,9 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
     bool up = false;
     double size = (double)(180/MAX(width,height));
 
+
+    int last_x = 0;
+    int last_y = 0;
 
     // insert the first indices in the stack
     saved_x.push_back(old_x);
@@ -152,28 +170,46 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
                 pos_x = new_x * size;
                 pos_y = new_y * size;
 
-                if (image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
+                if (image_2d[new_x][new_y] >= 25 && image_visited[new_x][new_y] == 0) {
                     image_visited[new_x][new_y] = 1;
+                    old_x = new_x;
+                    old_y = new_y;
+
                     saved_x.push_back(new_x);
                     saved_y.push_back(new_y);
                     cout << "push\tnew_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
 
                     col = 0;
                     row = 0;
-                    outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << endl;
 
-                    if (image_visited[old_x][old_y] == 1 && up) {
+                    outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t;pen down"<< endl;
+
+/*
+                    // drag elimination (kind of costly)
+                    if(surrounding_check(new_x, new_y, last_x, last_y)) {
+                        outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t;pen down"<< endl;
+                    } else {
+                        outputFile << "G0 F10000 Z3.0\t\t\t;move pencil up" << endl;
+                        outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << endl;
+                        outputFile << "G0 F10000 Z0.03\t\t\t;moving down" << endl;
+                    }
+
+
+                    last_x = new_x;
+                    last_y = new_y;
+*/
+                    /*if (image_visited[old_x][old_y] == 1 && up) {
                         outputFile << "G0 F10000 Z0.03\t\t\t;moving down" << endl;
                         up = false;
-                    }
+                    }*/
                     break;
                 }
             }
-        }
+        }/*
         if (!up) {
             outputFile << "G0 F10000 Z1.5\t\t\t;move pencil up" << endl;
             up = true;
-        }
+        }*/
         saved_x.pop_back();
         saved_y.pop_back();
         old_x = saved_x.back();
@@ -224,7 +260,7 @@ int gcode(vector<int> image, int width, int height) {
      for(int x = 1; x < (width - 1); x++) {
          for(int y = 1; y < (height - 1); y++) {
              // if the image is grey/white and has not been visited
-             if(image_2d[x][y] >= 50 && image_visited[x][y] == 0) {
+             if(image_2d[x][y] >= 25 && image_visited[x][y] == 0) {
                 //printf("pixel[%d][%d] = %d\n", x, y, image_2d[x][y]);
 
                 // recursive call once a grey/white pixel has been found
@@ -239,6 +275,7 @@ int gcode(vector<int> image, int width, int height) {
                     outputFile << "G0 F10000 Z0.03\t\t\t;moving down" << endl;
                     up = false;
                 }
+
                 up = next(image_2d, image_visited, x, y, height, width);
 
                 if (!up) {
