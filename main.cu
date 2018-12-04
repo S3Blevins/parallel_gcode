@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     // default flags written
     int default_proc_flag = 0;
     int default_out_flag = 0;
-    int filter;
+    int filter = 1;
     int test_count = 1;
 
     // string allocations for input and output names

@@ -114,7 +114,7 @@ void next_to(int **image_2d, int **image_visited, int x, int y, int height, int 
  * @param height        the pixel height of the image
  * @param width         the pixel width of the image
  */
-void next(int **image_2d, int **image_visited, int x, int y, int height, int width) {
+bool next(int **image_2d, int **image_visited, int x, int y, int height, int width) {
     double pos_x;
     double pos_y;
     int old_x = x;
@@ -123,6 +123,7 @@ void next(int **image_2d, int **image_visited, int x, int y, int height, int wid
     int new_y = y;
     vector<int> saved_x;            // saved indices to simulate
     vector<int> saved_y;            // recursion
+    bool up = false;
 
     // insert the first indices in the stack
     saved_x.push_back(old_x);
@@ -154,10 +155,19 @@ void next(int **image_2d, int **image_visited, int x, int y, int height, int wid
 
                     col = 0;
                     row = 0;
-                    outputFile << "G0" << " F10000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t\t;move pencil down" << endl;
+                    outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << endl;
+
+                    if (image_visited[old_x][old_y] == 1 && up) {
+                        outputFile << "G0 F10000 Z0.03\t\t\t;moving down" << endl;
+                        up = false;
+                    }
                     break;
                 }
             }
+        }
+        if (!up) {
+            outputFile << "G0 F10000 Z1.5\t\t\t;move pencil up" << endl;
+            up = true;
         }
         saved_x.pop_back();
         saved_y.pop_back();
@@ -165,6 +175,7 @@ void next(int **image_2d, int **image_visited, int x, int y, int height, int wid
         old_y = saved_y.back();
         cout << "pop\tnew_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
     }
+    return up;
 }
 
 /**
@@ -180,6 +191,8 @@ int gcode(vector<int> image, int width, int height) {
     image_2d = new int *[width];
     int **image_visited;
     image_visited = new int *[width];
+    double pos_x, pos_y;
+    bool up = true;
 
     gcode_prolog();
 
@@ -211,8 +224,20 @@ int gcode(vector<int> image, int width, int height) {
                 // recursive call once a grey/white pixel has been found
                 // and follow up with any pixels which are grey/white
                 // immediately next to that
-                next(image_2d, image_visited, x, y, height, width);
-                outputFile << "G0 F10000 Z3.0\t\t\t;move pencil up" << endl;
+                pos_x = x * ((double)180/width);
+                pos_y = y * ((double)180/height);
+
+                outputFile << "G0 F8000 X" << pos_x <<  " Y" << pos_y << endl;
+
+                if (up) {
+                    outputFile << "G0 F10000 Z0.03\t\t\t;moving down" << endl;
+                    up = false;
+                }
+                up = next(image_2d, image_visited, x, y, height, width);
+
+                if (!up) {
+                    outputFile << "G0 F10000 Z3.0\t\t\t;move pencil up" << endl;
+                }
              }
          }
      }
