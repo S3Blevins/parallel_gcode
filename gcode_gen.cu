@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#define MAX(((a)>(b))?(a):(b))
+#define MAX(a,b)(((a)>(b))?(a):(b))
 
 // NOTE: everything above 50 is considered a white line
 ofstream outputFile;
