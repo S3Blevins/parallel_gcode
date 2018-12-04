@@ -385,7 +385,6 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
         exit(1);
     }
 
-
     // Success - This point should have the picture in an output array
     cudaMemcpy(filterImageOutput, outputIMG_array, image_array_size, cudaMemcpyDeviceToHost);
 
