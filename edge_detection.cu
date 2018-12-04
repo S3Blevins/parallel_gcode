@@ -25,8 +25,14 @@ int RGx_matrix[4] = {1, 0,
 int RGy_matrix[4] = {0, 1,
                     -1, 0};
 
+//------------------------Prewitt Edge Detector---------------------------------
+int PGx_matrix[9] = {-1, 0, 1,
+                     -1, 0, 1,
+                     -1, 0, 1};
+int PGy_matrix[9] = {-1, -1, -1,
+                      0, 0, 0,
+                      1, 1, 1};
 //------------------------------------------------------------------------------
-
 
 __global__
 void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *Gx_array, int *Gy_array, int threshold) {
@@ -47,6 +53,7 @@ void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *G
     if((i < (width * height)) && (x > 0) && (y > 0)  && (x < width - 1) && (y < height - 1)) {
 
         for(int filter_pos = 0; filter_pos < 9; filter_pos++) {
+            // This is for calulating where in the matrix filter to cacluate.
             int col = filter_pos % 3;
             int row = filter_pos / 3;
 
@@ -107,6 +114,58 @@ void robertFilterKernel(int *imageRGB, int *output, int width, int height, int *
             // summation of Gx and Gy intensities
             Gx += RGx_array[filter_pos] * RGB;
             Gy += RGy_array[filter_pos] * RGB;
+        }
+
+        // absolute value
+        if(Gx < 0) {
+            Gx *= -1;
+        }
+        if(Gy < 0) {
+            Gy *= -1;
+        }
+
+        // absolute value of intensities
+        length = Gx + Gy;
+
+        // normalize the gradient with threshold value (DEFAULT: 2048)
+        normalized_pixel = length * 255 / threshold;
+        __syncthreads();
+        output[x + (width * y)] = normalized_pixel;
+    }
+     __syncthreads();
+}
+
+__global__
+void prewittFilterKernel(int *imageRGB, int *output, int width, int height, int *PGx_array, int *PGy_array, int threshold) {
+    int Gx, Gy;
+    int length;
+    int normalized_pixel;
+
+    //calculate thread locations (threadIDx)
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int x = i % width;
+    int y = i / width;
+
+    // loop through pixels x and y
+    //for(int x = 1; x < width; x++) {
+    //    for(int y = 1; y < height; y++) {
+
+    // initialize Gx and Gy intensities to 0 for every pixel
+    Gx = 0;
+    Gy = 0;
+    int RGB;
+
+    if((i < (width * height)) && (x > 0) && (y > 0)  && (x < width - 1) && (y < height - 1)) {
+
+        for(int filter_pos = 0; filter_pos < 4; filter_pos++) {
+            int col = filter_pos % 2;
+            int row = filter_pos / 2;
+
+            RGB = imageRGB[(x + col - 1) + (width * (y + row - 1))];
+
+            // summation of Gx and Gy intensities
+            Gx += PGx_array[filter_pos] * RGB;
+            Gy += PGy_array[filter_pos] * RGB;
         }
 
         // absolute value
@@ -226,7 +285,7 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     // Device IMG_array, device Sobel Filter x, device Sobel Filter y
     int *inputIMG_array, *outputIMG_array, *filterx, *filtery;
 
-    if (filter == 1) {
+    if (filter == 1 || filter == 3) {
         image_size = width * height;
         image_array_size = image_size * sizeof(int);
         matrix_array_size = 9 * sizeof(int);
@@ -234,9 +293,6 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
         image_size = width * height;
         image_array_size = image_size * sizeof(int);
         matrix_array_size = 4 * sizeof(int);
-    } else if (filter == 3) {
-        printf("Launching Prewitt Edge Detector\n");
-        exit(0);
     } else if (filter == 4 ) {
         printf("Launching Frie Chen Edge Detector\n");
         exit(0);
@@ -279,7 +335,12 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
         printf("Launching Robert's Edge Detector\n");
         robertFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, filterx, filtery, threshold);
     } else if (filter == 3) {
+        // Copy array to device memory
+        cudaMemcpy(filterx, PGx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
+        // Copy array to device memory
+        cudaMemcpy(filtery, PGy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
         printf("Launching Prewitt Edge Detector\n");
+        prewittFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, filterx, filtery, threshold);
     } else {
         printf("Launching Frie Chen Edge Detector\n");
     }
