@@ -32,7 +32,6 @@ int PGx_matrix[9] = {-1, 0, 1,
 int PGy_matrix[9] = {-1, -1, -1,
                       0, 0, 0,
                       1, 1, 1};
-//------------------------------------------------------------------------------
 
 __global__
 void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *Gx_array, int *Gy_array, int threshold) {
