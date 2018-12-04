@@ -32,7 +32,6 @@ int PGx_matrix[9] = {-1, 0, 1,
 int PGy_matrix[9] = {-1, -1, -1,
                       0, 0, 0,
                       1, 1, 1};
-//------------------------------------------------------------------------------
 
 __global__
 void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *Gx_array, int *Gy_array, int threshold) {
@@ -319,6 +318,10 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     // Copy array to device memory
     cudaMemcpy(inputIMG_array, img_array, image_array_size, cudaMemcpyHostToDevice);
 
+    //For timing purposes.
+    float ms = 0;
+    cudaEvent_t begin, end;
+
     if (filter == 1) {
         // Copy array to device memory
         cudaMemcpy(filterx, Gx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
@@ -326,23 +329,48 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
         cudaMemcpy(filtery, Gy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
         // Launch kernel (UNSURE OF BLOCKS PER GRID vs THREADS PER BLOCK)
         printf("Launching Sobel Edge Detector\n");
+        //timing prep
+        cudaEventCreate(&begin);
+        cudaEventCreate(&end);
+
+        //timing start
+        cudaEventRecord(begin);
         sobelFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, filterx, filtery, threshold);
+        //timing stop
+        cudaEventRecord(end);
     } else if (filter == 2) {
         // Copy array to device memory
         cudaMemcpy(filterx, RGx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
         // Copy array to device memory
         cudaMemcpy(filtery, RGy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
         printf("Launching Robert's Edge Detector\n");
+        //timing prep
+        cudaEventCreate(&begin);
+        cudaEventCreate(&end);
+
+        //timing start
+        cudaEventRecord(begin);
         robertFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, filterx, filtery, threshold);
+        //timing stop
+        cudaEventRecord(end);
     } else if (filter == 3) {
         // Copy array to device memory
         cudaMemcpy(filterx, PGx_matrix, matrix_array_size, cudaMemcpyHostToDevice);
         // Copy array to device memory
         cudaMemcpy(filtery, PGy_matrix, matrix_array_size, cudaMemcpyHostToDevice);
         printf("Launching Prewitt Edge Detector\n");
+        //timing prep
+        cudaEventCreate(&begin);
+        cudaEventCreate(&end);
+
+        //timing start
+        cudaEventRecord(begin);
         prewittFilterKernel <<< ceil(image_size/256.0), 256 >>> (inputIMG_array, outputIMG_array, width, height, filterx, filtery, threshold);
+        //timing stop
+        cudaEventRecord(end);
     } else {
-        printf("Launching Frie Chen Edge Detector\n");
+        printf("Not a valid filter, exiting...\n");
+        exit(1);
     }
     cudaDeviceSynchronize();
 
@@ -361,7 +389,11 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
     // Success - This point should have the picture in an output array
     cudaMemcpy(filterImageOutput, outputIMG_array, image_array_size, cudaMemcpyDeviceToHost);
 
-    // Here we have sobelPictureOutput that we need to print and show the results
+    cudaEventSynchronize(end);
+    ms = 0;
+    cudaEventElapsedTime(&ms, begin, end);
+
+    printf("Time elapsed: %f ms \n", ms);
 
     // I think this is how we convert an array into a vector?
     vector<int> out(filterImageOutput, filterImageOutput + image_size);

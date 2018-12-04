@@ -159,6 +159,6 @@ void helper(void) {
     printf("\tSobel Edge detector: 1\n");
     printf("\tRobert's Edge detector: 2\n");
     printf("\tPrewitt Edge dector: 3\n");
-    printf("\tFrie Chen Edge detector: 4\n");
-    printf("\tExample: ./generator -g -w -f 1 \n");
+    
+    printf("\tExample: ./generator -g -w -f 1 -t 1024 \n");
 }
