@@ -109,7 +109,6 @@ int main(int argc, char *argv[]) {
 
     // call the wrapper function which compiles according to the flags
     for (int t = 0; t < test_count; t++) {
-        printf("t: %d\n", t + 1);
         edge_detection_wrapper(flags, input_name, output_name, threshold, filter);
     }
 
