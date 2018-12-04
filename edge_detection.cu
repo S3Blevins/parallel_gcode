@@ -36,8 +36,8 @@ void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *G
 
     //calculate thread locations (threadIDx)
     int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int y = i % width;  // x is where in the matrix x direction.
-    int x = (i / width); // y is where in the matrix in the y direction.
+    int x = i % width;  // x is where in the matrix x direction.
+    int y = (i / width); // y is where in the matrix in the y direction.
 
     // initialize Gx and Gy intensities to 0 for every pixel
     Gx = 0;
