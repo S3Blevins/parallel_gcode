@@ -34,7 +34,7 @@ void error_check(cudaError_t err);
 __global__
 void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int Gx_matrix[][3], int Gy_matrix[][3], int threshold);
 __global__
-void robertFilterKernel(int *imageRGB, int *output, int width, int height, int Gx_array[][2], int Gy_array[][2], int threshold);
+void robertFilterKernel(int *imageRGB, int *output, int width, int height, int RGx_array[][2], int RGy_array[][2], int threshold);
 __global__
 void prewittFilterKernel(int *imageRGB, int *output, int width, int height, int PGx_array[][3], int PGy_array[][3], int threshold);
 
