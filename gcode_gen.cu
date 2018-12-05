@@ -94,7 +94,7 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
                 new_y = old_y + row - 1;
 
                 if (new_x >= width || new_y >= height) {
-                    cout << "going out of bounds\theigth: " << height << "\twidth: " << width << endl;
+                    //cout << "going out of bounds\theigth: " << height << "\twidth: " << width << endl;
                     continue;
                 }
 
