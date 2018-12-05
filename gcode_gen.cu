@@ -192,7 +192,6 @@ int gcode(vector<int> image, int width, int height) {
              }
          }
      }
-     cout << "size of pix: " << size << endl;
      gcode_epilog();
 
     return 0;
@@ -216,8 +215,6 @@ void g_gen(vector<int> img, int width, int height, string output_name) {
 
     // call the function
     gcode(img, width, height);
-
-    cout << "heigth: " << height << "\twidth: " << width << endl;
 
     // close file
     //outputFile.close(output_name);
