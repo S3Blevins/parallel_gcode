@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include<fstream>
 #include<string>
+#include <time.h>
 
 using namespace std;
 using namespace cimg_library;
