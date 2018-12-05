@@ -6,8 +6,6 @@
 
 using namespace std;
 
-#define MAX(a,b)(((a)>(b))?(a):(b))
-
 // NOTE: everything above 50 is considered a white line
 ofstream outputFile;
 
@@ -96,7 +94,7 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
                 new_y = old_y + row - 1;
 
                 if (new_x >= width || new_y >= height) {
-                    cout << "going out of bounds\theigth: " << height << "\twidth: " << width << endl;
+                    //cout << "going out of bounds\theigth: " << height << "\twidth: " << width << endl;
                     continue;
                 }
 
@@ -194,7 +192,6 @@ int gcode(vector<int> image, int width, int height) {
              }
          }
      }
-     cout << "size of pix: " << size << endl;
      gcode_epilog();
 
     return 0;
@@ -218,8 +215,6 @@ void g_gen(vector<int> img, int width, int height, string output_name) {
 
     // call the function
     gcode(img, width, height);
-
-    cout << "heigth: " << height << "\twidth: " << width << endl;
 
     // close file
     //outputFile.close(output_name);
