@@ -13,10 +13,14 @@
 using namespace std;
 using namespace cimg_library;
 
+#define MAX(a,b)(((a)>(b))?(a):(b))
+
+#define MIN(a,b)(((a)<(b))?(a):(b))
+
 // Standard Functions
 void edge_detection_wrapper(char flags, string input_name, string output_name, int threshold, int filter);
 
-vector<int> vectorize_img(CImg<unsigned char> img, int *width, int *height);
+vector<int> vectorize_img(CImg<unsigned char> img);
 
 vector<int> edge_detection_cpu(vector<int> img, int width, int height, int threshold, int filter);
 

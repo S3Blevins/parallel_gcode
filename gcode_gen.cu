@@ -6,8 +6,6 @@
 
 using namespace std;
 
-#define MAX(a,b)(((a)>(b))?(a):(b))
-
 // NOTE: everything above 50 is considered a white line
 ofstream outputFile;
 
@@ -59,68 +57,6 @@ void gcode_epilog() {
 }
 
 /**
- * checks pixels adjacent to the main pixel located at x and y
- * @param image_2d      image in 2d array of format
- * @param image_visited pixel visitation flags for each pixel in 2d format
- * @param x             x position of pixel to check adjacents
- * @param y             y position of pixel to check adjacents
- * @param height        the pixel height of the image
- * @param width         the pixel width of the image
- */
-void next_to(int **image_2d, int **image_visited, int x, int y, int height, int width) {
-
-    int new_x;
-    int new_y;
-    double pos_x;
-    double pos_y;
-    double size = ((double)180/MAX(width,height));
-
-    //printf("original pixel\n");
-    //printf("pixel[%d][%d] = %d\n", x, y, image_2d[x][y]);
-    //printf("checking pixels...\n");
-
-    // look at all pixels surrounding the main pixel in question
-    for(int col = 0; col < 3; col++) {
-        for(int row = 0; row < 3; row++) {
-            new_x = x + col - 1;
-            new_y = y + row - 1;
-
-            if (new_x >= width || new_y >= height) {
-                cout << "going out of bounds\theight: " << height << "\twidth: " << width << endl;
-                continue;
-            }
-
-            pos_x = new_x * size;
-            pos_y = new_y * size;
-
-            //printf("checking pixel[%d][%d] = %d\n", new_x, new_y, image_visited[new_x][new_y]);
-            if(image_2d[new_x][new_y] >= 50 && image_visited[new_x][new_y] == 0) {
-                image_visited[new_x][new_y] = 1;
-                //printf("pixel[%d][%d] = %d\n", new_x, new_y, image_2d[new_x][new_y]);
-                outputFile << "G0" << " F10000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t\t;move pencil down" << endl;
-                next_to(image_2d, image_visited, new_x, new_y, height, width);
-            }
-        }
-    }
-}
-
-int surrounding_check(int x, int y, int last_x, int last_y) {
-    int new_x, new_y;
-
-    for(int col = 0; col < 3; col++) {
-        for(int row = 0; row < 3; row++){
-            new_x = x + col - 1;
-            new_y = y + row - 1;
-
-            if(new_x == last_x || new_y == last_y) {
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
-/**
  * non-recursively checks pixels adjacent to the main pixel located at x
  * and y
  * @param image_2d      image in 2d array of format
@@ -144,14 +80,9 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
     bool up = false;
     double size = ((double)180/MAX(width,height));
 
-
-    int last_x = 0;
-    int last_y = 0;
-
     // insert the first indices in the stack
     saved_x.push_back(old_x);
     saved_y.push_back(old_y);
-    cout << "old_x: "<< new_x <<"\told_y: "<< new_y << endl;
 
     // keep checking the surrounding elements as long as
     // the stack is not empty
@@ -177,44 +108,21 @@ bool next(int **image_2d, int **image_visited, int x, int y, int height, int wid
 
                     saved_x.push_back(new_x);
                     saved_y.push_back(new_y);
-                    cout << "push\tnew_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
 
                     col = 0;
                     row = 0;
 
                     outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t;pen down"<< endl;
 
-/*
-                    // drag elimination (kind of costly)
-                    if(surrounding_check(new_x, new_y, last_x, last_y)) {
-                        outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << " Z0.03\t\t;pen down"<< endl;
-                    } else {
-                        outputFile << "G0 F10000 Z3.0\t\t\t;move pencil up" << endl;
-                        outputFile << "G0" << " F8000" << " X" << pos_x << " Y" << pos_y << endl;
-                        outputFile << "G0 F10000 Z0.03\t\t\t;moving down" << endl;
-                    }
-
-
-                    last_x = new_x;
-                    last_y = new_y;
-*/
-                    /*if (image_visited[old_x][old_y] == 1 && up) {
-                        outputFile << "G0 F10000 Z0.03\t\t\t;moving down" << endl;
-                        up = false;
-                    }*/
                     break;
                 }
             }
-        }/*
-        if (!up) {
-            outputFile << "G0 F10000 Z1.5\t\t\t;move pencil up" << endl;
-            up = true;
-        }*/
+        }
+
         saved_x.pop_back();
         saved_y.pop_back();
         old_x = saved_x.back();
         old_y = saved_y.back();
-        cout << "pop\tnew_x: "<< new_x <<"\tnew_y: "<< new_y << endl;
     }
     return up;
 }
@@ -284,7 +192,7 @@ int gcode(vector<int> image, int width, int height) {
              }
          }
      }
-     cout << "size: " << size << endl;
+     cout << "size of pix: " << size << endl;
      gcode_epilog();
 
     return 0;
