@@ -124,10 +124,6 @@ void helper(void) {
     printf("\t[-i]\n");
     printf("\tThe flag will enable the program to output the metadata of image\n\n");
 
-    printf("\t[-c] (REQUIRED or [-g])\n");
-    printf("\tThe flag will enable the program to process the FILE the CPU\n");
-    printf("\tNOTE: This flag cannot be used alongside the '-g' flag.\n\n");
-
     printf("\t[-g] (REQUIRED or [-c])\n");
     printf("\tThe flag will enable the program to process the FILE the GPU\n");
     printf("\tNOTE: This flag cannot be used alongside the '-c' flag.\n\n");
@@ -159,6 +155,6 @@ void helper(void) {
     printf("\tSobel Edge detector: 1\n");
     printf("\tRobert's Edge detector: 2\n");
     printf("\tPrewitt Edge dector: 3\n");
-    
+
     printf("\tExample: ./generator -g -w -f 1 -t 1024 \n");
 }
