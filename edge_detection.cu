@@ -234,11 +234,8 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
     if(MAX(width,height) > 1024) {
         scaler = ((double)1024/MAX(width,height));
 
-    } else if (MIN(width,height) < 512) {
-        scaler = ((double)512/MIN(width,height));
-
-    } else {
-        scaler = 1;
+    } else if (MAX(width,height) < 512) {
+        scaler = ((double)MAX(width,height)/512);
     }
 
     // resize
