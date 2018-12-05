@@ -260,10 +260,17 @@ void edge_detection_wrapper(char flags, string input_name, string output_name, i
         // overwrite the image vector with sobel filter
         image_vector = edge_detection_gpu(image_vector, width, height, threshold, filter);
     } else {
-        //printf("CPU Processed\n");
+        //For timing purposes.
+        int ms = 0;
+        clock_t start = clock(), diff;
 
         // overwrite the image vector with filter choice
         image_vector = edge_detection_cpu(image_vector, width, height, threshold, filter);
+
+        diff = clock() - start;
+        ms = diff * 1000 / CLOCKS_PER_SEC;
+        printf("CPU: Time taken = %d ms \n", ms % 1000);
+
     }
 
     // call g-code generator here
