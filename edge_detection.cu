@@ -451,8 +451,14 @@ vector<int> edge_detection_gpu(vector<int> img, int width, int height, int thres
 
     printf("Time elapsed: %f ms \n", ms);
 
-    // I think this is how we convert an array into a vector?
+    // convert an array into a vector
     vector<int> out(filterImageOutput, filterImageOutput + image_size);
+
+    cudaFree(inputIMG_array);
+    cudaFree(filterx);
+    cudaFree(filtery);
+    cudaFree(outputIMG_array);
+
     return out;
 }
 
