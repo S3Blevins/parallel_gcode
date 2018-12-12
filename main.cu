@@ -1,3 +1,17 @@
+/**
+ * @file main.cu
+ *
+ * @author Sterling Blevins
+ *
+ * @date 12/11/18
+ *
+ * @assignment: HPC Project
+ *
+ * @brief Project detects edges of image using GPU or CPU and converts the
+ * edges into G-Code which is used by a plotter
+ *
+ * @bugs Seems to function!
+ */
 #include "kernel.h" // Contains function prototypes and libs
 #define BUFF 4096
 
@@ -45,6 +59,8 @@ int main(int argc, char *argv[]) {
     string input_name = argv[1];
     string output_name = input_name;
 
+    int threshold_changed = 0;
+
     int c;              // switch case variable
     while((c = getopt(argc, argv, "icgdo:f:r:vwt:h")) != -1) {
         switch(c) {
@@ -61,7 +77,7 @@ int main(int argc, char *argv[]) {
                 output_name = optarg;
                 default_out_flag = 1;
                 break;
-            case 'f':
+            case 'f':   // filter type
                 filter = atoi(optarg); //change the filter choise to an int
                 break;
             case 'v':   // enable verbose mode [FOR DEBUGGING]
@@ -70,13 +86,14 @@ int main(int argc, char *argv[]) {
             case 'w':   // enables writing of edge detection filter to a file
                 flags |= 0x10;
                 break;
-            case 'r':
+            case 'r':   // run the kernel x amount
                 //initialized by default to 1
                 test_count = atoi(optarg); // How many times to run a certain filter.
                 break;
             case 't':   // filter threshold (HIDDEN FLAG -> DEFAULT is 2048)
                 try {
                     threshold = stoi(optarg);
+                    threshold_changed = 1;
                     //printf("threshold %d\n", threshold);
                 } catch (std::invalid_argument&e) {
                     printf("Please use a proper threshold value.\n");
@@ -90,11 +107,12 @@ int main(int argc, char *argv[]) {
             }
     }
 
-    // lets user know if they have not selected a processor, so use default.
-    /*if(default_proc_flag) {
-        printf("THE CPU IS USED BY DEFAULT.\n");
-        printf("Use the [-c] flag to turn off this warning.\n");
-    }*/
+    // set default filter thresholds
+    if((filter == 2) && (threshold_changed == 0)) {
+        threshold = 1024;
+    } else if((filter == 3) && (threshold_changed == 0)) {
+        threshold = 512;
+    }
 
     // isolate the string if the flag has not been selected.
     if(!default_out_flag) {
@@ -116,7 +134,7 @@ int main(int argc, char *argv[]) {
  */
 void helper(void) {
     printf("\nCOMMAND USAGE FOR TOOL:\n\n");
-    printf("\t./generator FILE [-i] [-c] [-g] [-d] [-o OUTPUT] [-v] [-w] [-f NUMBER]\n\n");
+    printf("\t./generator FILE [-i] [-g] [-d] [-o OUTPUT] [-v] [-w] [-f NUMBER]\n\n");
 
     printf("\tFILE (REQUIRED)\n");
     printf("\tThe FILE is the name of the input file.\n\n");

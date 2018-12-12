@@ -25,9 +25,6 @@ int RGx_matrix[4] = {1, 0,
 int RGy_matrix[4] = {0, 1,
                     -1, 0};
 
-
-//------------------------------------------------------------------------------
-
 //------------------------Prewitt Edge Detector---------------------------------
 int PGx_matrix[9] = {-1, 0, 1,
                      -1, 0, 1,
@@ -35,14 +32,24 @@ int PGx_matrix[9] = {-1, 0, 1,
 int PGy_matrix[9] = {-1, -1, -1,
                       0, 0, 0,
                       1, 1, 1};
-
+/**
+ * Sobel Edge Detection Algorithm
+ * @param  imageRGB  original image array
+ * @param  output    output array
+ * @param  width     width of image
+ * @param  height    height of image
+ * @param  Gx_array  X convolution matrix
+ * @param  Gy_array  Y convolution matrix
+ * @param  threshold averaging threshold
+ * @return           void
+ */
 __global__
 void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *Gx_array, int *Gy_array, int threshold) {
     int Gx, Gy;
     int length;
     int normalized_pixel;
 
-    //calculate thread locations (threadIDx)
+    // calculate thread locations (threadIDx)
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int x = i % width;  // x is where in the matrix x direction.
     int y = (i / width); // y is where in the matrix in the y direction.
@@ -52,8 +59,10 @@ void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *G
     Gy = 0;
     int RGB;
 
+    // avoids going out of bounds and always within one column and row of the outer edges
     if((i < (width * height)) && (x > 0) && (y > 0)  && (x < width - 1) && (y < height - 1)) {
 
+        // linear iteration over filter
         for(int filter_pos = 0; filter_pos < 9; filter_pos++) {
             int col = filter_pos % 3;
             int row = filter_pos / 3;
@@ -84,28 +93,38 @@ void sobelFilterKernel(int *imageRGB, int *output, int width, int height, int *G
      __syncthreads();
 }
 
+/**
+ * Robert's Edge Detection Algorithm
+ * @param  imageRGB   original image array
+ * @param  output     output array
+ * @param  width      width of image
+ * @param  height     height of image
+ * @param  RGx_array  X convolution matrix
+ * @param  RGy_array  Y convolution matrix
+ * @param  threshold  averaging threshold
+ * @return            void
+ */
 __global__
 void robertFilterKernel(int *imageRGB, int *output, int width, int height, int *RGx_array, int *RGy_array, int threshold) {
     int Gx, Gy;
     int length;
     int normalized_pixel;
 
-    //calculate thread locations (threadIDx)
+    // calculate thread locations (threadIDx)
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int x = i % width;
     int y = i / width;
 
-    // loop through pixels x and y
-    //for(int x = 1; x < width; x++) {
-    //    for(int y = 1; y < height; y++) {
 
     // initialize Gx and Gy intensities to 0 for every pixel
     Gx = 0;
     Gy = 0;
     int RGB;
 
+    // avoids going out of bounds and always within one column and row of the outer edges
     if((i < (width * height)) && (x > 0) && (y > 0)  && (x < width - 1) && (y < height - 1)) {
 
+        // linear iteration of convultion matrices
         for(int filter_pos = 0; filter_pos < 4; filter_pos++) {
             int col = filter_pos % 2;
             int row = filter_pos / 2;
@@ -136,28 +155,37 @@ void robertFilterKernel(int *imageRGB, int *output, int width, int height, int *
      __syncthreads();
 }
 
+/**
+ * Prewitt's Edge Detection Algorithm
+ * @param  imageRGB   original image array
+ * @param  output     output array
+ * @param  width      width of image
+ * @param  height     height of image
+ * @param  PGx_array  X convolution matrix
+ * @param  PGy_array  Y convolution matrix
+ * @param  threshold  averaging threshold
+ * @return            void
+ */
 __global__
 void prewittFilterKernel(int *imageRGB, int *output, int width, int height, int *PGx_array, int *PGy_array, int threshold) {
     int Gx, Gy;
     int length;
     int normalized_pixel;
 
-    //calculate thread locations (threadIDx)
+    // calculate thread locations (threadIDx)
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int x = i % width;
     int y = i / width;
-
-    // loop through pixels x and y
-    //for(int x = 1; x < width; x++) {
-    //    for(int y = 1; y < height; y++) {
 
     // initialize Gx and Gy intensities to 0 for every pixel
     Gx = 0;
     Gy = 0;
     int RGB;
 
+    // avoids going out of bounds and always within one column and row of the outer edges
     if((i < (width * height)) && (x > 0) && (y > 0)  && (x < width - 1) && (y < height - 1)) {
 
+        // linear iteration of convultion matrices
         for(int filter_pos = 0; filter_pos < 4; filter_pos++) {
             int col = filter_pos % 2;
             int row = filter_pos / 2;
