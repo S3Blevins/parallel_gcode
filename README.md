@@ -1,7 +1,9 @@
 # Image to G-Code Converter
 
 The Image to G-Code converter takes an image of PNG, BMP, or JPG and uses an edge detection algorithm to output
-G-Code in X and Y coordinates which is readable by a plotter. 
+G-Code in X and Y coordinates which is readable by a plotter. Click below to see video demonstration.
+
+[![Alt text](http://img.youtube.com/vi/R487K4S0kPE/0.jpg)](https://youtu.be/R487K4S0kPE)
 
 #### Edge Detection Algorithms:
   - *Sobel-Feldman Edge Detection*
